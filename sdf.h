@@ -1,6 +1,8 @@
 #ifndef __SDF_H__
 #define __SDF_H__
 
+#include <math.h>
+
 #include "vec.h"
 
 /* From https://iquilezles.org/www/articles/distfunctions/distfunctions.htm */

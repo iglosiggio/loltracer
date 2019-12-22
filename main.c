@@ -1,9 +1,11 @@
-#include <SDL.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <stdbool.h>
-#include <sched.h>
+#include <assert.h>
 #include <math.h>
+#include <sched.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+#include <SDL.h>
 
 #include "vec.h"
 #include "sdf.h"
@@ -30,7 +32,7 @@ static inline struct world_dist sdf(v3 p) {
 
 	{
 		v3 pos = v3sub(p, (v3){0, 1, 6});
-		pos.x += sin(frames / 10.) * 5;
+		pos.x += sinf(frames / 10.) * 5;
 		float r = 1;
 
 		size_t obj_id = 1;
@@ -103,8 +105,8 @@ static struct world_dist get_intersection(v3 ro, v3 rd) {
 static float in_shadow(v3 p) {
 	/* Tengo una sola luz y la muevo un poco */
 	v3 light_pos = {-2, 10, 1};
-	light_pos.x += sin(frames / 12.) * 5;
-	light_pos.z += cos(frames / 7. ) * 8;
+	light_pos.x += sinf(frames / 12.) * 5;
+	light_pos.z += cosf(frames / 7. ) * 8;
 
 	v3 dir = v3normalize(v3sub(light_pos, p));
 	p = v3add(p, v3scale(dir, 0.04));
@@ -163,8 +165,8 @@ static v3 get_light(v3 p, v3 n, size_t obj_id) {
 	
 	/* ... por cada luz ... */
 	v3 light_pos = {-2, 10, 1};
-	light_pos.x += sin(frames / 12.) * 5;
-	light_pos.z += cos(frames / 7. ) * 8;
+	light_pos.x += sinf(frames / 12.) * 5;
+	light_pos.z += cosf(frames / 7. ) * 8;
 
 	v3 light_dir = v3normalize(v3sub(light_pos, p));
 	v3 reflected_dir = v3sub(v3scale(n, 2 * v3dot(light_dir, n)), 
