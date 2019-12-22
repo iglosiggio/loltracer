@@ -114,11 +114,11 @@ static float in_shadow(v3 p) {
 	return get_intersection(p, dir).id == 0;
 }
 
-static inline Uint32 colorf_to_colori(v3 colorf) {
-	unsigned char r = colorf.x * 255;
-	unsigned char g = colorf.y * 255;
-	unsigned char b = colorf.z * 255;
-	return r << 24 | g << 16 | b << 8 | 0xFF;
+static inline Uint32 colorf_to_pixfmt(v3 colorf, const SDL_PixelFormat* fmt) {
+	Uint8 r = colorf.x * 255;
+	Uint8 g = colorf.y * 255;
+	Uint8 b = colorf.z * 255;
+	return SDL_MapRGB(fmt, r, g, b);
 }
 
 #if SDL_BYTEORDER == SDL_BIG_ENDIAN
@@ -200,33 +200,24 @@ static v3 get_light(v3 p, v3 n, size_t obj_id) {
 }
 
 int main(int argc, char* argv[]) {
-	static const int	WIDTH = 320;
-	static const int	HEIGHT = 240;
-
 	SDL_Window*	win;
-	SDL_Renderer*	ctx;
+	SDL_Surface*	tex;
 	SDL_Event	event;
 	bool		paused = false;
 
-	SDL_Texture*	tex;
-	void*		texbuf;
-	int		width;
+	int width = 320;
+	int height = 240;
 	
 
 	LOG("Inicializando");
 	if (SDL_Init(SDL_INIT_VIDEO))
 		die(SDL_GetError());
 
-	if (SDL_CreateWindowAndRenderer(WIDTH, HEIGHT, SDL_WINDOW_RESIZABLE,
-	                                &win, &ctx))
+	win = SDL_CreateWindow("Loltracer", SDL_WINDOWPOS_CENTERED,
+	                       SDL_WINDOWPOS_CENTERED, width, height,
+	                       SDL_WINDOW_RESIZABLE);
+	if (win == NULL)
 		die(SDL_GetError());
-
-	tex = SDL_CreateTexture(ctx, SDL_PIXELFORMAT_RGBA8888,
-	                        SDL_TEXTUREACCESS_STREAMING, WIDTH, HEIGHT);
-
-	if (tex == NULL)
-		die(SDL_GetError());
-
 
 	while (1) {
 		while (SDL_PollEvent(&event)) {
@@ -236,14 +227,22 @@ int main(int argc, char* argv[]) {
 				paused = !paused;
 		}
 
-		SDL_RenderClear(ctx);
-		SDL_LockTexture(tex, NULL, &texbuf, &width);
-		for (int y = 0; y < HEIGHT; y++)
-		for (int x = 0; x < WIDTH; x++) {
+		tex = SDL_GetWindowSurface(win);
+		if (tex == NULL)
+			die(SDL_GetError());
+		Uint8 bytes_per_pixel = tex->format->BytesPerPixel;
+		width = tex->w;
+		height = tex->h;
+
+		if (SDL_MUSTLOCK(tex))
+			SDL_LockSurface(tex);
+
+		for (int y = 0; y < height; y++)
+		for (int x = 0; x < width; x++) {
 			v3 ro = {0, 1, 0};
 			v3 rd = v3normalize((v3){
-				(x - WIDTH / 2) / (float)HEIGHT,
-				-(y - HEIGHT / 2) / (float)HEIGHT,
+				(x - width / 2) / (float)height,
+				-(y - height / 2) / (float)height,
 				1
 			});
 			struct world_dist intersect = get_intersection(ro, rd);
@@ -251,18 +250,21 @@ int main(int argc, char* argv[]) {
 			v3 colorf = get_color(p, intersect.id);
 			v3 light = get_light(p, get_normal(p), intersect.id);
 			colorf = v3mul(colorf, light);
-			Uint32 colori = colorf_to_colori(colorf);
-			((Uint32*) texbuf)[x + width / 4 * y] = colori;
+			Uint32 colori = colorf_to_pixfmt(colorf, tex->format);
+			*((Uint32*)(tex->pixels
+			            + x * bytes_per_pixel
+			            + y * tex->pitch)) = colori;
 		}
 		frames++;
-		SDL_UnlockTexture(tex);
-		SDL_RenderCopy(ctx, tex, NULL, NULL);
-		SDL_RenderPresent(ctx);
+
+		if (SDL_MUSTLOCK(tex))
+			SDL_UnlockSurface(tex);
+
+		SDL_UpdateWindowSurface(win);
+		SDL_FreeSurface(tex);
 	}
 exit:
 	LOG("Cerrando");
-	SDL_DestroyTexture(tex);
-	SDL_DestroyRenderer(ctx);
 	SDL_DestroyWindow(win);
 	SDL_Quit();
 	return 0;
