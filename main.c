@@ -125,14 +125,49 @@ static inline Uint32 colorf_to_pixfmt(v3 colorf, const SDL_PixelFormat* fmt) {
 #error "This program doesn't support big endian architectures yet"
 #endif /* SDL_BYTEORDER = SDL_BIG_ENDIAN */
 
-static v3 get_color(v3 p, size_t obj_id) {
-	v3 color;
+struct material {
+	float shininess;
+	v3 diffuse;
+	v3 specular;
+	v3 ambient;
+};
+
+static struct material get_material(size_t obj_id) {
+	static struct material materials[5] = {
+		{
+			.shininess = 4,
+			.diffuse   = { 0, 0, 0 },
+			.specular  = { 0, 0, 0 },
+			.ambient   = { 0, 0, 0 }
+		},
+		{
+			.shininess = 3,
+			.diffuse   = { 0.2, 0, 0 },
+			.specular  = { 0.2, 0.2, 0.2 },
+			.ambient   = { 0.2, 0, 0 }
+		},
+		{
+			.shininess = 50,
+			.diffuse   = { 0, 0.2, 0 },
+			.specular  = { 0.2, 0.2, 0.2 },
+			.ambient   = { 0, 0.2, 0 }
+		},
+		{
+			.shininess = 2,
+			.diffuse   = { 0, 0, 0.2 },
+			.specular  = { 0.01, 0.01, 0.01 },
+			.ambient   = { 0, 0, 0.2 }
+		},
+		{
+			.shininess = 10,
+			.diffuse   = { 0.2, 0.2, 0 },
+			.specular  = { 0.001, 0.001, 0.001 },
+			.ambient   = { 0.2, 0.2, 0 }
+		},
+	};
 	switch (obj_id) {
-	case 1:  return color = (v3){1, 0, 0};
-	case 2:  return color = (v3){0, 1, 0};
-	case 3:  return color = (v3){0, 0, 1};
-	case 4:  return color = (v3){1, 1, 0};
-	default: return color = (v3){0, 0, 0};
+	case 1: case 2: case 3: case 4: return materials[obj_id];
+	default: return materials[0];
 	}
 }
 
@@ -152,16 +187,11 @@ static v3 get_normal(v3 p) {
 /* Basado en el modelo Phong (wiki:Phong_reflection_model) */
 static v3 get_light(v3 p, v3 n, size_t obj_id) {
 	/* Es común a todo el ambiente */
-	v3 light_ambient_intensity = {0.2, 0.2, 0.2};
+	v3 light_ambient_intensity = {0.3, 0.3, 0.3};
 
 	float shadow = in_shadow(p);
 
-	/* Información del material
-	   TODO: Utilizar obj_id para extraerla */
-	float material_shininess = 25;
-	float material_diffuse_reflection = 0.3;
-	float material_specular_reflection = 0.7;
-	float material_ambient_reflection = 1;
+	struct material mat = get_material(obj_id);
 	
 	/* ... por cada luz ... */
 	v3 light_pos = {-2, 10, 1};
@@ -173,30 +203,35 @@ static v3 get_light(v3 p, v3 n, size_t obj_id) {
 	                         light_dir);
 	v3 camera_dir = v3normalize(v3sub((v3){0, 1, 0}, p));
 
-	v3 light_diffuse_intensity = {1, 1, 1};
-	v3 light_specular_intensity = {1, 1, 1};
+	v3 light_diffuse_intensity = {4, 4, 4};
+	v3 light_specular_intensity = {4, 4, 4};
 
 	/* Ajusto la iluminación mate según ángulo y sombra */
-	float diffuse_incidence = shadow * v3dot(n, light_dir);
+	float diffuse_incidence = fmaxf(0, v3dot(n, light_dir));
 	light_diffuse_intensity = v3scale(light_diffuse_intensity,
 	                                  diffuse_incidence);
-	light_diffuse_intensity = v3scale(light_diffuse_intensity,
-	                                  material_diffuse_reflection);
+	light_diffuse_intensity = v3mul(light_diffuse_intensity, mat.diffuse);
 
 	/* Ajusto la iluminación especular según ángulo y sombra */
-	float specular_incidence = shadow * powf(
-		v3dot(reflected_dir, camera_dir) * shadow,
-		material_shininess
-	);
-	light_specular_intensity = v3scale(light_diffuse_intensity,
+	float specular_incidence = fmaxf(0, powf(
+		v3dot(reflected_dir, camera_dir),
+		mat.shininess
+	));
+	light_specular_intensity = v3scale(light_specular_intensity,
 	                                   specular_incidence);
+	light_specular_intensity = v3mul(light_specular_intensity,
+	                                 mat.specular);
 
-	light_ambient_intensity = v3scale(light_ambient_intensity,
-	                                  material_ambient_reflection);
+	light_ambient_intensity = v3mul(light_ambient_intensity,
+	                                mat.ambient);
 
-	v3 light = v3add(light_diffuse_intensity, light_specular_intensity);
+	v3 light = light_ambient_intensity;
+	if (shadow >= 1) {
+		light = v3add(light, light_diffuse_intensity);
+		light = v3add(light, light_specular_intensity);
+	}
 
-	return v3clamp(v3add(light_ambient_intensity, light), 0, 1);
+	return v3clamp(light, 0, 1);
 }
 
 int main(int argc, char* argv[]) {
@@ -247,9 +282,9 @@ int main(int argc, char* argv[]) {
 			});
 			struct world_dist intersect = get_intersection(ro, rd);
 			v3 p = v3add(ro, v3scale(rd, intersect.dist));
-			v3 colorf = get_color(p, intersect.id);
-			v3 light = get_light(p, get_normal(p), intersect.id);
-			colorf = v3mul(colorf, light);
+			v3 colorf = get_light(p, get_normal(p), intersect.id);
+			/* gamma correction */
+			colorf = v3pow(colorf, 1.0/2.2);
 			Uint32 colori = colorf_to_pixfmt(colorf, tex->format);
 			*((Uint32*)(tex->pixels
 			            + x * bytes_per_pixel

@@ -58,5 +58,7 @@ static inline v3 v3clamp(v3 v, float min, float max)
 { return(v3){ clamp(v.x, min, max),
               clamp(v.y, min, max),
               clamp(v.z, min, max) }; }
+static inline v3 v3pow(v3 v, float pow)
+{ return (v3){ powf(v.x, pow), powf(v.y, pow), powf(v.z, pow) }; }
 
 #endif /* __VEC_H__ */
