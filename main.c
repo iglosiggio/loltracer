@@ -21,10 +21,6 @@ static void die(const char* str) {
 	exit(-1);
 }
 
-static Uint8 rand_byte() {
-	return rand() % 256;
-}
-
 struct world_dist { float dist; Uint32 id; };
 
 static inline struct world_dist sdf(v3 p) {
@@ -113,7 +109,7 @@ static float softshadow(v3 ro, v3 rd, size_t max_steps, float max_dist,
 	for (size_t i = 0; i < max_steps; i++) {
 		v3 p = v3add(ro, v3scale(rd, dist));
 		float scene_dist = sdf(p).dist;
-		res = fminf(res, scene_dist / (w * dist));
+		res = fminf(res, w * scene_dist / dist);
 		dist += scene_dist;
 		if (res < -1 || dist > max_dist)
 			break;
@@ -131,7 +127,7 @@ static float in_shadow(v3 p) {
 	v3 dir = v3normalize(v3sub(light_pos, p));
 	p = v3add(p, v3scale(dir, 0.04));
 
-	float rval = softshadow(p, dir, 64, 50, 0.5);
+	float rval = softshadow(p, dir, 128, 50, 50);
 	return rval;
 }
 
@@ -197,7 +193,7 @@ static v3 get_normal(v3 p, float dist) {
 	static const v3 k1 = {-1, -1,  1};
 	static const v3 k2 = {-1,  1, -1};
 	static const v3 k3 = { 1,  1,  1};
-	const float h = dist / 100000;
+	const float h = dist / 100;
 	const v3 p0 = v3scale(k0, sdf(v3add(p, v3scale(k0, h))).dist);
 	const v3 p1 = v3scale(k1, sdf(v3add(p, v3scale(k1, h))).dist);
 	const v3 p2 = v3scale(k2, sdf(v3add(p, v3scale(k2, h))).dist);
