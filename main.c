@@ -15,6 +15,10 @@
                                 __LINE__ __VA_OPT__(,) __VA_ARGS__)
 
 size_t frames;
+SDL_atomic_t exiting;
+SDL_atomic_t current_line;
+SDL_sem* frame_entry_barrier;
+SDL_sem* frame_exit_barrier;
 
 static void die(const char* str) {
 	perror(str);
@@ -249,45 +253,28 @@ static v3 get_light(v3 p, v3 n, size_t obj_id) {
 	return v3clamp(total_light, 0, 1);
 }
 
-int main(int argc, char* argv[]) {
-	SDL_Window*	win;
-	SDL_Surface*	tex;
-	SDL_Event	event;
-	bool		paused = false;
 
-	int width = 320;
-	int height = 240;
-	
+struct render_data  {
+	SDL_Surface* surf;
+};
 
-	LOG("Inicializando");
-	if (SDL_Init(SDL_INIT_VIDEO))
-		die(SDL_GetError());
+int render_thread(void* ptr) {
+	struct render_data* data = ptr;
+	int width;
+	int height;
 
-	win = SDL_CreateWindow("Loltracer", SDL_WINDOWPOS_CENTERED,
-	                       SDL_WINDOWPOS_CENTERED, width, height,
-	                       SDL_WINDOW_RESIZABLE);
-	if (win == NULL)
-		die(SDL_GetError());
+	while (true) {
+		SDL_SemWait(frame_entry_barrier);
+		if (SDL_AtomicGet(&exiting))
+			return 0;
 
-	while (1) {
-		while (SDL_PollEvent(&event)) {
-			if (event.type == SDL_QUIT)
-				goto exit;
-			if (event.type == SDL_MOUSEBUTTONUP)
-				paused = !paused;
-		}
+		SDL_Surface* surf = data->surf;
+		Uint8 bytes_per_pixel = surf->format->BytesPerPixel;
+		width  = surf->w;
+		height = surf->h;
 
-		tex = SDL_GetWindowSurface(win);
-		if (tex == NULL)
-			die(SDL_GetError());
-		Uint8 bytes_per_pixel = tex->format->BytesPerPixel;
-		width = tex->w;
-		height = tex->h;
-
-		if (SDL_MUSTLOCK(tex))
-			SDL_LockSurface(tex);
-
-		for (int y = 0; y < height; y++)
+		int y;
+		while ((y = SDL_AtomicAdd(&current_line, 1)) < height)
 		for (int x = 0; x < width; x++) {
 			v3 ro = {0, 1, 0};
 			v3 rd = v3normalize((v3){
@@ -301,21 +288,89 @@ int main(int argc, char* argv[]) {
 			v3 colorf = get_light(p, n, intersect.id);
 			/* gamma correction */
 			colorf = v3pow(colorf, 1.0/2.2);
-			Uint32 colori = colorf_to_pixfmt(colorf, tex->format);
-			*((Uint32*)(tex->pixels
+			Uint32 colori = colorf_to_pixfmt(colorf, surf->format);
+			*((Uint32*)(surf->pixels
 			            + x * bytes_per_pixel
-			            + y * tex->pitch)) = colori;
+			            + y * surf->pitch)) = colori;
 		}
+
+		SDL_SemPost(frame_exit_barrier);
+	}
+}
+
+int main(int argc, char* argv[]) {
+	SDL_Window*	win;
+	SDL_Event	event;
+	bool		paused = false;
+
+	int width = 320;
+	int height = 240;
+
+	size_t num_threads = 1;
+	SDL_Thread** threads;
+	struct render_data data;
+
+	if (argc > 1)
+		num_threads = atoi(argv[1]);
+
+	threads = malloc(sizeof(SDL_Thread*) * num_threads);
+
+	LOG("Inicializando threads = %d", num_threads);
+	frame_entry_barrier = SDL_CreateSemaphore(0);
+	frame_exit_barrier  = SDL_CreateSemaphore(0);
+	for (size_t i = 0; i < num_threads; i++)
+		threads[i] = SDL_CreateThread(render_thread, "renderer",
+		                              &data);
+
+	LOG("Inicializando SDL");
+	if (SDL_Init(SDL_INIT_VIDEO))
+		die(SDL_GetError());
+
+	win = SDL_CreateWindow("Loltracer", SDL_WINDOWPOS_CENTERED,
+	                       SDL_WINDOWPOS_CENTERED, width, height,
+	                       SDL_WINDOW_RESIZABLE);
+	if (win == NULL)
+		die(SDL_GetError());
+
+	while (1) {
+		while (SDL_PollEvent(&event)) {
+			if (event.type == SDL_QUIT) {
+				SDL_AtomicSet(&exiting, 1);
+				for (size_t i = 0; i < num_threads; i++)
+					SDL_SemPost(frame_entry_barrier);
+				for (size_t i = 0; i < num_threads; i++)
+					SDL_WaitThread(threads[i], NULL);
+				goto exit;
+			}
+			if (event.type == SDL_MOUSEBUTTONUP)
+				paused = !paused;
+		}
+
+		data.surf = SDL_GetWindowSurface(win);
+		if (data.surf == NULL)
+			die(SDL_GetError());
+
+		if (SDL_MUSTLOCK(data.surf))
+			SDL_LockSurface(data.surf);
+
+		SDL_AtomicSet(&current_line, 0);
+		for (size_t i = 0; i < num_threads; i++)
+			SDL_SemPost(frame_entry_barrier);
+		for (size_t i = 0; i < num_threads; i++)
+			SDL_SemWait(frame_exit_barrier);
 		frames++;
 
-		if (SDL_MUSTLOCK(tex))
-			SDL_UnlockSurface(tex);
+		if (SDL_MUSTLOCK(data.surf))
+			SDL_UnlockSurface(data.surf);
 
 		SDL_UpdateWindowSurface(win);
-		SDL_FreeSurface(tex);
+		SDL_FreeSurface(data.surf);
 	}
 exit:
 	LOG("Cerrando");
+	free(threads);
+	SDL_DestroySemaphore(frame_entry_barrier);
+	SDL_DestroySemaphore(frame_exit_barrier);
 	SDL_DestroyWindow(win);
 	SDL_Quit();
 	return 0;
