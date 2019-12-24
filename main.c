@@ -98,8 +98,28 @@ static struct world_dist get_intersection(v3 ro, v3 rd) {
 	if (dist >= MAX_DIST)
 		id = 0;
 
-	/* TODO: Give a correct Object ID */
 	return (struct world_dist){ dist, id };
+}
+
+/* https://iquilezles.org/www/articles/rmshadows/rmshadows.htm */
+static float softshadow(v3 ro, v3 rd, size_t max_steps, float max_dist,
+                        float w) {
+
+	static const float	EPSILON = 0.001;
+
+	float res = 1.0;
+	float dist = 0;
+
+	for (size_t i = 0; i < max_steps; i++) {
+		v3 p = v3add(ro, v3scale(rd, dist));
+		float scene_dist = sdf(p).dist;
+		res = fminf(res, scene_dist / (w * dist));
+		dist += scene_dist;
+		if (res < -1 || dist > max_dist)
+			break;
+	}
+	res = fmaxf(res, 0.0);
+	return res;
 }
 
 static float in_shadow(v3 p) {
@@ -111,7 +131,8 @@ static float in_shadow(v3 p) {
 	v3 dir = v3normalize(v3sub(light_pos, p));
 	p = v3add(p, v3scale(dir, 0.04));
 
-	return get_intersection(p, dir).id == 0;
+	float rval = softshadow(p, dir, 64, 50, 0.5);
+	return rval;
 }
 
 static inline Uint32 colorf_to_pixfmt(v3 colorf, const SDL_PixelFormat* fmt) {
@@ -171,12 +192,12 @@ static struct material get_material(size_t obj_id) {
 	}
 }
 
-static v3 get_normal(v3 p) {
-	static const float h = 0.0001;
+static v3 get_normal(v3 p, float dist) {
 	static const v3 k0 = { 1, -1, -1};
 	static const v3 k1 = {-1, -1,  1};
 	static const v3 k2 = {-1,  1, -1};
 	static const v3 k3 = { 1,  1,  1};
+	const float h = dist / 100000;
 	const v3 p0 = v3scale(k0, sdf(v3add(p, v3scale(k0, h))).dist);
 	const v3 p1 = v3scale(k1, sdf(v3add(p, v3scale(k1, h))).dist);
 	const v3 p2 = v3scale(k2, sdf(v3add(p, v3scale(k2, h))).dist);
@@ -187,7 +208,7 @@ static v3 get_normal(v3 p) {
 /* Basado en el modelo Phong (wiki:Phong_reflection_model) */
 static v3 get_light(v3 p, v3 n, size_t obj_id) {
 	/* Es común a todo el ambiente */
-	v3 light_ambient_intensity = {0.3, 0.3, 0.3};
+	v3 light_ambient_intensity = {0.03, 0.03, 0.03};
 
 	float shadow = in_shadow(p);
 
@@ -207,13 +228,13 @@ static v3 get_light(v3 p, v3 n, size_t obj_id) {
 	v3 light_specular_intensity = {4, 4, 4};
 
 	/* Ajusto la iluminación mate según ángulo y sombra */
-	float diffuse_incidence = fmaxf(0, v3dot(n, light_dir));
+	float diffuse_incidence = shadow *fmaxf(0, v3dot(n, light_dir));
 	light_diffuse_intensity = v3scale(light_diffuse_intensity,
 	                                  diffuse_incidence);
 	light_diffuse_intensity = v3mul(light_diffuse_intensity, mat.diffuse);
 
 	/* Ajusto la iluminación especular según ángulo y sombra */
-	float specular_incidence = fmaxf(0, powf(
+	float specular_incidence = shadow * fmaxf(0, powf(
 		v3dot(reflected_dir, camera_dir),
 		mat.shininess
 	));
@@ -225,13 +246,11 @@ static v3 get_light(v3 p, v3 n, size_t obj_id) {
 	light_ambient_intensity = v3mul(light_ambient_intensity,
 	                                mat.ambient);
 
-	v3 light = light_ambient_intensity;
-	if (shadow >= 1) {
-		light = v3add(light, light_diffuse_intensity);
-		light = v3add(light, light_specular_intensity);
-	}
+	v3 total_light = light_ambient_intensity;
+	total_light = v3add(total_light, light_diffuse_intensity);
+	total_light = v3add(total_light, light_specular_intensity);
 
-	return v3clamp(light, 0, 1);
+	return v3clamp(total_light, 0, 1);
 }
 
 int main(int argc, char* argv[]) {
@@ -282,7 +301,8 @@ int main(int argc, char* argv[]) {
 			});
 			struct world_dist intersect = get_intersection(ro, rd);
 			v3 p = v3add(ro, v3scale(rd, intersect.dist));
-			v3 colorf = get_light(p, get_normal(p), intersect.id);
+			v3 n = get_normal(p, intersect.dist);
+			v3 colorf = get_light(p, n, intersect.id);
 			/* gamma correction */
 			colorf = v3pow(colorf, 1.0/2.2);
 			Uint32 colori = colorf_to_pixfmt(colorf, tex->format);
