@@ -206,7 +206,7 @@ static v3 get_normal(v3 p, float dist) {
 }
 
 /* Basado en el modelo Phong (wiki:Phong_reflection_model) */
-static v3 get_light(v3 p, v3 n, size_t obj_id) {
+static v3 get_light(v3 p, v3 n, v3 cam_pos, size_t obj_id) {
 	/* Es común a todo el ambiente */
 	v3 light_ambient_intensity = {0.03, 0.03, 0.03};
 
@@ -222,7 +222,7 @@ static v3 get_light(v3 p, v3 n, size_t obj_id) {
 	v3 light_dir = v3normalize(v3sub(light_pos, p));
 	v3 reflected_dir = v3sub(v3scale(n, 2 * v3dot(light_dir, n)), 
 	                         light_dir);
-	v3 camera_dir = v3normalize(v3sub((v3){0, 1, 0}, p));
+	v3 camera_dir = v3normalize(v3sub(cam_pos, p));
 
 	v3 light_diffuse_intensity = {4, 4, 4};
 	v3 light_specular_intensity = {4, 4, 4};
@@ -253,15 +253,29 @@ static v3 get_light(v3 p, v3 n, size_t obj_id) {
 	return v3clamp(total_light, 0, 1);
 }
 
+static v3 get_camera_ray(v3 cam_pos, v3 nw_corner, v3 se_corner, v2 view_pos) {
+	v3 view_pos_3d = {view_pos.x, view_pos.y, v2len(view_pos) / sqrtf(2)};
+	v3 dest_pos = v3add(v3mul(view_pos_3d, v3sub(se_corner, nw_corner)),
+	                    nw_corner);
+	return v3normalize(v3sub(dest_pos, cam_pos));
+}
+
 
 struct render_data  {
 	SDL_Surface* surf;
+	bool stretch;
+	v3 nw_corner;
+	v3 se_corner;
+	v3 cam_pos;
 };
 
 int render_thread(void* ptr) {
 	struct render_data* data = ptr;
 	int width;
 	int height;
+	float fwidth;
+	float fheight;
+	bool stretch;
 
 	while (true) {
 		SDL_SemWait(frame_entry_barrier);
@@ -270,22 +284,33 @@ int render_thread(void* ptr) {
 
 		SDL_Surface* surf = data->surf;
 		Uint8 bytes_per_pixel = surf->format->BytesPerPixel;
-		width  = surf->w;
-		height = surf->h;
+		fwidth = width  = surf->w;
+		fheight = height = surf->h;
+		stretch = data->stretch;
+		v3 ro = data->cam_pos;
+		v3 nw = data->nw_corner;
+		v3 se = data->se_corner;
 
 		int y;
 		while ((y = SDL_AtomicAdd(&current_line, 1)) < height)
 		for (int x = 0; x < width; x++) {
-			v3 ro = {0, 1, 0};
-			v3 rd = v3normalize((v3){
-				(x - width / 2) / (float)height,
-				-(y - height / 2) / (float)height,
-				1
-			});
+			v2 view_pos;
+
+			if (stretch)
+				view_pos = (v2){
+					x / fwidth,
+					y / fheight,
+				};
+			else
+				view_pos = (v2){
+					x / fheight - (fwidth/fheight - 1) / 2,
+					y / fheight
+				};
+			v3 rd = get_camera_ray(ro, nw, se, view_pos);
 			struct world_dist intersect = get_intersection(ro, rd);
 			v3 p = v3add(ro, v3scale(rd, intersect.dist));
 			v3 n = get_normal(p, intersect.dist);
-			v3 colorf = get_light(p, n, intersect.id);
+			v3 colorf = get_light(p, n, ro, intersect.id);
 			/* gamma correction */
 			colorf = v3pow(colorf, 1.0/2.2);
 			Uint32 colori = colorf_to_pixfmt(colorf, surf->format);
@@ -349,6 +374,10 @@ int main(int argc, char* argv[]) {
 		data.surf = SDL_GetWindowSurface(win);
 		if (data.surf == NULL)
 			die(SDL_GetError());
+		data.stretch = false;
+		data.nw_corner = (v3){-1, 1, 1};
+		data.se_corner = (v3){1, -1, 1};
+		data.cam_pos = (v3){0, 0, 0};
 
 		if (SDL_MUSTLOCK(data.surf))
 			SDL_LockSurface(data.surf);
