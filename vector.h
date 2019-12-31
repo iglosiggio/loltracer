@@ -10,8 +10,8 @@ struct vector {
 	void* data;
 };
 
-inline
-struct vector* vector_new(size_t elem_size, size_t initial_capacity) {
+static inline
+struct vector* _vector_new(size_t elem_size, size_t initial_capacity) {
 	struct vector* rval = malloc(sizeof(struct vector));
 	rval->size = 0;
 	rval->capacity = initial_capacity;
@@ -20,14 +20,14 @@ struct vector* vector_new(size_t elem_size, size_t initial_capacity) {
 	return rval;
 }
 
-inline
+static inline
 void vector_free(struct vector* vec) {
 	free(vec->data);
 	free(vec);
 }
 
-inline
-void* vector_add(struct vector* vec) {
+static inline
+void* _vector_add(struct vector* vec) {
 	if (vec->size >= vec->capacity) {
 		vec->capacity = vec->capacity * vec->elem_size * 2;
 		vec->data = realloc(vec->data, vec->capacity);
@@ -36,11 +36,15 @@ void* vector_add(struct vector* vec) {
 	return vec->data + vec->size++ * vec->elem_size;
 }
 
-inline
-void* vector_get(const struct vector* vec, size_t idx) {
+static inline
+void* _vector_get(const struct vector* vec, size_t idx) {
 	assert(idx < vec->size);
 
 	return vec->data + idx * vec->elem_size;
 }
+
+#define vector_add(type, vec)		(*(type*) _vector_add((vec)))
+#define vector_get(type, vec, idx) 	(*(type*) _vector_get((vec), (idx)))
+#define vector_new(type, capacity)	_vector_new(sizeof(type), capacity)
 
 #endif /* __VECTOR_H__ */
