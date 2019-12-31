@@ -2,6 +2,7 @@
 
 %{
 	#include <stdio.h>
+	#include "vector.h"
 	
 	extern int yylex(void);
 	extern void yyerror(const char*);
@@ -39,8 +40,25 @@
 %token	POINT2            	"point2"
 %token	Y                 	"y"
 
-%nterm	<const char*>	type
-%nterm	<const char*>	property
+/* Vector of numbers */
+%nterm	<struct vector*>	num_list
+%nterm	<struct vector*>	numbers
+
+/* Vector of materials */
+%nterm	<struct vector*>	materials
+%nterm	<struct vector*>	material_list
+
+/* Vector of scene objects */
+%nterm	<struct vector*>	scene_info
+
+/* Vector of definitions */
+%nterm	<struct vector*>	definition_list
+
+%nterm	<struct material>		material
+%nterm	<struct scene*>			scene
+%nterm	<struct definition_value>	value
+%nterm	<int>				type
+%nterm	<int>				property
 
 %% /* Grammar rules and actions follow. */
 input:
@@ -48,71 +66,97 @@ input:
 ;
 
 materials:
-	MATERIALS '{' material_list '}' { puts("materials"); }
+	MATERIALS '{' material_list '}'
+		{ $$ = $3; }
 ;
 
 scene:
-	SCENE '{' scene_info '}' { puts("materials"); }
+	SCENE '{' scene_info '}'
+		{ $$ = scene_from_object_list($3); }
 ;
 
 material_list:
-	material ',' material_list	{ puts("material"); }
-|	material			{ puts("material"); }
+	material_list ',' material
+		{ vector_add(struct material, $1) = $3;
+		  $$ = $1; }
+|	material
+		{ $$ = vector_new(struct material, 16);
+		  vector_add(struct material, $$) = $1; }
 ;
 
 material:
-	'{' definition_list '}' { puts("material"); }
+	'{' definition_list '}'
+		{ $$ = material_from_definition_list($2); }
 ;
 
 scene_info:
-	scene_info ',' type '{' definition_list '}'	{ puts("data"); }
-|	type '{' definition_list '}'			{ puts("data"); }
+	scene_info ',' type '{' definition_list '}'
+		{ vector_add(struct scene_object, $1) =
+			scene_object_from_definition_list($3, $5);
+		  $$ = $1; }
+|	type '{' definition_list '}'
+		{ $$ = vector_new(struct scene_object, 16);
+		  vector_add(struct scene_object, $1) =
+			scene_object_from_definition_list($1, $3); }
 ;
 
 definition_list:
-	definition_list ',' property '=' value	{ printf("assignation to %s\n", $3); }
-|	property '=' value			{ printf("assignation to %s\n", $1); }
+	definition_list ',' property '=' value
+		{ vector_add(struct definition, $1) =
+			(struct definition) {$3, $5};
+		  $$ = $1;  }
+|	property '=' value
+		{ $$ = vector_new(struct definition, 16);
+		  vector_add(struct definition, $$) =
+			(struct definition) {$1, $3}; }
 ;
 
 value:
-	NUM	{ printf("number %f\n", $1); }
-|	numbers	{ puts("list value"); }
+	NUM
+		{ $$ = (struct definition_value) { .TYPE = 0, .num = $1 }; }
+|	numbers
+		{ $$ = (struct definition_value) { .TYPE = 1, .list = $1 }; }
 ;
 
 numbers:
-	'(' num_list ')'	{ puts("number list"); }
+	'(' num_list ')'
+		{ $$ = $2 }
 ;
 
 num_list:
-	num_list ',' NUM	{ printf("number %f\n", $3); }
-|	NUM			{ printf("number %f\n", $1); }
+	num_list ',' NUM
+		{ vector_add(float, $1) = $3;
+		  $$ = $1; }
+|	NUM
+		{ $$ = vector_new(float, 4);
+		  vector_add(float, $$) = $1; }
 ;
 
 type:
-	AMBIENT		{ $$ = "ambient"; }
-|	CAMERA		{ $$ = "camera"; }
-|	POINT_LIGHT	{ $$ = "point_light"; }
-|	SPHERE		{ $$ = "sphere"; }
-|	BOX		{ $$ = "box"; }
-|	PLANE		{ $$ = "plane"; }
+	AMBIENT		{ $$ = AMBIENT; }
+|	CAMERA		{ $$ = CAMERA; }
+|	POINT_LIGHT	{ $$ = POINT_LIGHT; }
+|	SPHERE		{ $$ = SPHERE; }
+|	BOX		{ $$ = BOX; }
+|	PLANE		{ $$ = PLANE; }
 ;
 
 property:
-	ID			{ $$ = "id"; }
-|	SHININESS		{ $$ = "shininess"; }
-|	DIFFUSE			{ $$ = "diffuse"; }
-|	SPECULAR		{ $$ = "specular"; }
-|	AMBIENT			{ $$ = "ambient"; }
-|	COLOR			{ $$ = "color"; }
-|	POINT			{ $$ = "point"; }
-|	NW_CORNER		{ $$ = "nw_corner"; }
-|	SE_CORNER		{ $$ = "se_corner"; }
-|	DIFFUSE_INTENSITY	{ $$ = "diffuse_intensity"; }
-|	SPECULAR_INTENSITY	{ $$ = "specular_intensity"; }
-|	RADIUS			{ $$ = "radius"; }
-|	MATERIAL		{ $$ = "material"; }
-|	POINT2			{ $$ = "point2"; }
-|	Y			{ $$ = "y"; }
+	ID			{ $$ = ID; }
+|	SHININESS		{ $$ = SHININESS; }
+|	DIFFUSE			{ $$ = DIFFUSE; }
+|	SPECULAR		{ $$ = SPECULAR; }
+|	AMBIENT			{ $$ = AMBIENT; }
+|	COLOR			{ $$ = COLOR; }
+|	POINT			{ $$ = POINT; }
+|	NW_CORNER		{ $$ = NW_CORNER; }
+|	SE_CORNER		{ $$ = SE_CORNER; }
+|	DIFFUSE_INTENSITY	{ $$ = DIFFUSE_INTENSITY; }
+|	SPECULAR_INTENSITY	{ $$ = SPECULAR_INTENSITY; }
+|	RADIUS			{ $$ = RADIUS; }
+|	MATERIAL		{ $$ = MATERIAL; }
+|	POINT2			{ $$ = POINT2; }
+|	Y			{ $$ = Y; }
 ;
 
 %%
