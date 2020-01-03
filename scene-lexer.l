@@ -1,5 +1,4 @@
 %{
-	#include <stdio.h>
 	#include "scene-parser.h"
 %}
 
