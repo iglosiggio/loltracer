@@ -1,4 +1,4 @@
-/* Reverse Polish Notation calculator. */
+/* Loltracer scene description (.lol files) syntax. */
 
 %code requires {
 	#include "vector.h"
