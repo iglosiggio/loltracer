@@ -7,6 +7,7 @@
 
 [ \r\n\t]*	{ continue; /* Skip blanks. */ }
 [-.0-9]+	{ sscanf(yytext, "%f", &yylval.NUM); return NUM; }
+#[0-9]+		{ sscanf(yytext + 1, "%d", &yylval.ID); return ID; }
 
 "materials"	{ return MATERIALS; }
 "scene"		{ return SCENE; }
@@ -19,10 +20,10 @@
 "box"		{ return BOX; }
 "plane"		{ return PLANE; }
 
-"id"			{ return ID; }
 "shininess"		{ return SHININESS; }
 "diffuse"		{ return DIFFUSE; }
 "specular"		{ return SPECULAR; }
+ /* "ambient"		{ return AMBIENT; } */
 "color"			{ return COLOR; }
 "point"			{ return POINT; }
 "nw_corner"		{ return NW_CORNER; }
@@ -43,7 +44,3 @@
 .	{ continue; /* Ignore unexpected characters. */ }
 
 %%
-
-void yyerror(const char* msg) {
-    fprintf(stderr, "Error: %s\n", msg);
-}
