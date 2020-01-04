@@ -2,6 +2,8 @@
 	#include "scene-parser.h"
 %}
 
+%option noyywrap
+
 %%
 
 [ \r\n\t]*	{ continue; /* Skip blanks. */ }

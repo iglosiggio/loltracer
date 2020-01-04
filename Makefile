@@ -13,7 +13,7 @@ scene-lexer.c: scene-lexer.l scene-parser.h
 	flex -o $@ $<
 
 scene-parser: scene-parser.c scene-lexer.c
-	$(CC) $(CFLAGS) -lfl -lm -o $@ $^
+	$(CC) $(CFLAGS) -lm -o $@ $^
 
 clean:
 	rm -f main
