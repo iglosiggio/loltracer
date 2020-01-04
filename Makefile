@@ -1,19 +1,19 @@
 CFLAGS += $$(sdl2-config --cflags)
 LDFLAGS += $$(sdl2-config --libs) -lm
 
-main: main.c vec.h sdf.h
+SCENE ?= scene.lol
+THREADS ?= 8
+
+main: main.c vec.h sdf.h scene-parser.c scene-lexer.c scene.c naive_renderer.c
 
 run: main
-	env SDL_VIDEO_X11_WMCLASS=raytracer ./main
+	env SDL_VIDEO_X11_WMCLASS=raytracer ./main $(THREADS) $(SCENE)
 
 scene-parser.h scene-parser.c: scene-parser.y
 	bison -t -d -o $@ $<
 
 scene-lexer.c: scene-lexer.l scene-parser.h
 	flex -o $@ $<
-
-scene-parser: scene-parser.c scene-lexer.c
-	$(CC) $(CFLAGS) -lm -o $@ $^
 
 clean:
 	rm -f main
