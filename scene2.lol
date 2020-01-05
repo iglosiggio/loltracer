@@ -35,14 +35,14 @@ scene {
 
 	point_light {
 		point			= (-2, 10, 1),
-		diffuse_intensity	= (4, 4, 4),
-		specular_intensity	= (4, 4, 4)
+		diffuse_intensity	= (2, 2, 2),
+		specular_intensity	= (2, 2, 2)
 	},
 
 	point_light {
 		point			= (-3, 0, 5),
-		diffuse_intensity	= (4, 4, 4),
-		specular_intensity	= (4, 4, 4)
+		diffuse_intensity	= (2, 2, 2),
+		specular_intensity	= (2, 2, 2)
 	},
 
 	sphere {
