@@ -27,7 +27,7 @@ struct world_dist sdf(const struct scene* scene, v3 p) {
 			obj_dist = point.y;
 			break;
 		default:
-			fprintf(stderr, "Unknown scene object, id=%d\n", obj->type);
+			fprintf(stderr, "Unknown scene object");
 		}
 
 		obj_id += 1;
