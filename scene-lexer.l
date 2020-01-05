@@ -1,12 +1,14 @@
 %{
 	#include "scene-parser.h"
+	size_t line_number = 1;
 %}
 
 %option noyywrap
 
 %%
 
-[ \r\n\t]*	{ continue; /* Skip blanks. */ }
+\n		{ line_number++; }
+[ \r\t]*	{ continue; /* Skip blanks. */ }
 [-.0-9]+	{ sscanf(yytext, "%f", &yylval.NUM); return NUM; }
 #[0-9]+		{ sscanf(yytext + 1, "%d", &yylval.ID); return ID; }
 

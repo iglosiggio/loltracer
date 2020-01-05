@@ -5,6 +5,7 @@
 	#include "scene.h"
 
 	extern FILE* yyin;
+	extern size_t line_number;
 
 	struct scene* scene_parse(const char*);
 
@@ -174,7 +175,7 @@ property:
 %%
 
 void yyerror(struct scene** scene, const char* msg) {
-    fprintf(stderr, "Error: %s\n", msg);
+    fprintf(stderr, "Error: %s on line %d\n", msg, line_number);
 }
 
 struct scene* scene_parse(const char* filename) {
