@@ -22,12 +22,96 @@ SDL_atomic_t current_line;
 SDL_sem* frame_entry_barrier;
 SDL_sem* frame_exit_barrier;
 
-static void die(const char* str) {
+/* key -> up/down */
+struct keyboard_state {
+	bool W, A, S, D, Space, LCtrl;	/* Movement */
+	bool Left, Right, Up, Down;	/* Rotation */
+} key;
+
+static
+void update_keyboard(struct keyboard_state* key, SDL_KeyboardEvent ev) {
+	bool state = ev.state == SDL_PRESSED;
+
+	switch (ev.keysym.scancode) {
+	case SDL_SCANCODE_W:
+		key->W = state;
+		break;
+	case SDL_SCANCODE_A:
+		key->A = state;
+		break;
+	case SDL_SCANCODE_S:
+		key->S = state;
+		break;
+	case SDL_SCANCODE_D:
+		key->D = state;
+		break;
+	case SDL_SCANCODE_SPACE:
+		key->Space = state;
+		break;
+	case SDL_SCANCODE_LCTRL:
+		key->LCtrl = state;
+		break;
+	case SDL_SCANCODE_UP:
+		key->Up = state;
+		break;
+	case SDL_SCANCODE_DOWN:
+		key->Down = state;
+		break;
+	case SDL_SCANCODE_LEFT:
+		key->Left = state;
+		break;
+	case SDL_SCANCODE_RIGHT:
+		key->Right = state;
+		break;
+	}
+}
+
+static
+void update_camera(struct scene* scene) {
+	if (key.W) {
+		scene->camera.point.z += 0.1;
+		scene->camera.nw_corner.z += 0.1;
+		scene->camera.se_corner.z += 0.1;
+	}
+
+	if (key.A) {
+		scene->camera.point.x -= 0.1;
+		scene->camera.nw_corner.x -= 0.1;
+		scene->camera.se_corner.x -= 0.1;
+	}
+
+	if (key.S) {
+		scene->camera.point.z -= 0.1;
+		scene->camera.nw_corner.z -= 0.1;
+		scene->camera.se_corner.z -= 0.1;
+	}
+
+	if (key.D) {
+		scene->camera.point.x += 0.1;
+		scene->camera.nw_corner.x += 0.1;
+		scene->camera.se_corner.x += 0.1;
+	}
+
+	if (key.Space) {
+		scene->camera.point.y += 0.1;
+		scene->camera.nw_corner.y += 0.1;
+		scene->camera.se_corner.y += 0.1;
+	}
+
+	if (key.LCtrl) {
+		scene->camera.point.y -= 0.1;
+		scene->camera.nw_corner.y -= 0.1;
+		scene->camera.se_corner.y -= 0.1;
+	}
+}
+
+static
+void die(const char* str) {
 	perror(str);
 	exit(-1);
 }
 
-int render_scene(const struct scene* scene, size_t num_threads) {
+int render_scene(struct scene* scene, size_t num_threads) {
 	SDL_Window*	win;
 	SDL_Event	event;
 	bool		paused = false;
@@ -69,7 +153,12 @@ int render_scene(const struct scene* scene, size_t num_threads) {
 			}
 			if (event.type == SDL_MOUSEBUTTONUP)
 				paused = !paused;
+			if (event.type == SDL_KEYDOWN
+			    || event.type == SDL_KEYUP)
+				update_keyboard(&key, event.key);
 		}
+
+		update_camera(scene);
 
 		data.surf = SDL_GetWindowSurface(win);
 		if (data.surf == NULL)
