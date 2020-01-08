@@ -29,10 +29,8 @@
  /* "ambient"		{ return AMBIENT; } */
 "color"			{ return COLOR; }
 "point"			{ return POINT; }
-"nw_corner"		{ return NW_CORNER; }
-"nw-corner"		{ return NW_CORNER; }
-"se_corner"		{ return SE_CORNER; }
-"se-corner"		{ return SE_CORNER; }
+"direction"		{ return DIRECTION; }
+"fov"			{ return FOV; }
 "diffuse_intensity"	{ return DIFFUSE_INTENSITY; }
 "diffuse-intensity"	{ return DIFFUSE_INTENSITY; }
 "specular_intensity"	{ return SPECULAR_INTENSITY; }

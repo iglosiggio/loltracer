@@ -11,8 +11,8 @@ enum property {
 	PROP_AMBIENT,
 	PROP_COLOR,
 	PROP_POINT,
-	PROP_NW_CORNER,
-	PROP_SE_CORNER,
+	PROP_DIRECTION,
+	PROP_FOV,
 	PROP_DIFFUSE_INTENSITY,
 	PROP_SPECULAR_INTENSITY,
 	PROP_RADIUS,
@@ -82,8 +82,8 @@ struct object {
 
 struct camera {
 	v3	point;
-	v3	nw_corner;
-	v3	se_corner;
+	v3	direction;
+	float	fov;
 };
 
 struct scene {

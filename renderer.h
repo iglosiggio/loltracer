@@ -10,7 +10,6 @@ extern SDL_sem*		frame_exit_barrier;
 
 struct render_data  {
 	SDL_Surface* surf;
-	bool stretch;
 	const struct scene* scene;
 };
 

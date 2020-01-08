@@ -29,36 +29,36 @@ scene {
 
 	camera {
 		point		= (0, 0, 0),
-		nw_corner	= (-1, 1, 1),
-		se_corner	= (1, -1, 1)
+		direction	= (0, 0, -1),
+		fov		= 90
 	},
 
 	point_light {
-		point			= (-2, 10, 1),
+		point			= (-2, 10, -1),
 		diffuse_intensity	= (2, 2, 2),
 		specular_intensity	= (2, 2, 2)
 	},
 
 	point_light {
-		point			= (-3, 0, 5),
+		point			= (-3, 0, -5),
 		diffuse_intensity	= (2, 2, 2),
 		specular_intensity	= (2, 2, 2)
 	},
 
 	sphere {
-		point		= (0, 1, 6),
+		point		= (0, 1, -6),
 		radius		= 1,
 		material	= #1
 	},
 
 	sphere {
-		point		= (-1, 0.5, 3),
+		point		= (-1, 0.5, -3),
 		radius		= 1,
 		material	= #1
 	},
 
 	sphere {
-		point		= (5, -3, 10),
+		point		= (5, -3, -10),
 		radius		= 1,
 		material	= #1
 	},

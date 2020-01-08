@@ -43,30 +43,30 @@ scene {
 
 	camera {
 		point		= (0, 0, 0),
-		nw_corner	= (-1, 1, 1),
-		se_corner	= (1, -2, 1)
+		direction	= (0, 0, -1),
+		fov		= 150
 	},
 
 	point_light {
-		point			= (-2, 10, 1),
+		point			= (-2, 10, -1),
 		diffuse_intensity	= (4, 4, 4),
 		specular_intensity	= (4, 4, 4)
 	},
 
 	sphere {
-		point		= (0, 1, 6),
+		point		= (0, 1, -6),
 		radius		= 1,
 		material	= #1
 	},
 
 	sphere {
-		point		= (-1, 0.5, 3),
+		point		= (-1, 0.5, -3),
 		radius		= 1,
 		material	= #2
 	},
 
 	box {
-		point		= (2, 2, 10),
+		point		= (2, 2, -10),
 		point2 		= (2, 2, 2),
 		radius		= 0.6,
 		material	= #3

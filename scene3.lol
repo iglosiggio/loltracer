@@ -27,13 +27,13 @@ scene {
 	},
 
 	camera {
-		point		= (0, 1, -3),
-		nw_corner	= (-1, 2, -2),
-		se_corner	= (1, 0, -2)
+		point		= (0, 1, 3),
+		direction	= (0, 0, -1),
+		fov		= 90
 	},
 
 	sphere {
-		point		= (0, 0, 4),
+		point		= (0, 0, -4),
 		radius		= 4,
 		material	= #1
 	},
@@ -44,13 +44,13 @@ scene {
 	},
 
 	point_light {
-		point			= (-6, 4, 4),
+		point			= (-6, 4, -4),
 		diffuse_intensity	= (4, 3.5, 1.2),
 		specular_intensity	= (4, 3.5, 1.2)
 	},
 
 	point_light {
-		point			= (8, -1, 2),
+		point			= (8, -1, -2),
 		diffuse_intensity	= (1.2, 4, 3.5),
 		specular_intensity	= (1.2, 4, 3.5)
 	}

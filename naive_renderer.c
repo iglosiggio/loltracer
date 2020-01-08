@@ -172,14 +172,22 @@ v3 get_light(const struct scene* scene, v3 p, v3 n, size_t obj_id) {
 	return v3clamp(total_light, 0, 1);
 }
 
-static
-v3 get_camera_ray(struct camera cam, v2 view_pos) {
-	v3 view_pos_3d = {view_pos.x, view_pos.y, v2len(view_pos) / sqrtf(2)};
-	v3 dest_pos = v3add(
-		v3mul(view_pos_3d, v3sub(cam.se_corner, cam.nw_corner)),
-		cam.nw_corner
-	);
-	return v3normalize(v3sub(dest_pos, cam.point));
+/* Based on https://www.youtube.com/watch?v=LRN_ewuN_k4 */
+static inline
+v3 get_camera_ray(struct camera cam, v2 view_pos, float aspect_ratio) {
+	/* TODO: Es innecesario calcular todo esto para cada rayo */
+	v3 up_guide = {0, 1, 0};
+	float half_fov = cam.fov / 2;
+	float height = atanf(half_fov);
+	float width = aspect_ratio * height;
+	v3 right_dir = v3normalize(v3cross(cam.direction, up_guide));
+	v3 up_dir = v3cross(right_dir, cam.direction);
+
+	v3 rval = v3add(v3scale(right_dir, view_pos.x * width),
+	                v3scale(up_dir, view_pos.y * height));
+	rval = v3normalize(v3add(rval, cam.direction));
+
+	return rval;
 }
 
 int render_thread(void* ptr) {
@@ -188,7 +196,6 @@ int render_thread(void* ptr) {
 	int height;
 	float fwidth;
 	float fheight;
-	bool stretch;
 
 	while (true) {
 		SDL_SemWait(frame_entry_barrier);
@@ -199,26 +206,20 @@ int render_thread(void* ptr) {
 		Uint8 bytes_per_pixel = surf->format->BytesPerPixel;
 		fwidth = width  = surf->w;
 		fheight = height = surf->h;
-		stretch = data->stretch;
 		const struct scene* scene = data->scene;
 		v3 ro = scene->camera.point;
+		float aspect_ratio = fwidth / fheight;
 
 		int y;
 		while ((y = SDL_AtomicAdd(&current_line, 1)) < height)
 		for (int x = 0; x < width; x++) {
-			v2 view_pos;
+			v2 view_pos = (v2) {
+				(x + 0.5) / fwidth * 2 - 1,
+				1 - (y + 0.5) / fheight * 2,
+			};
 
-			if (stretch)
-				view_pos = (v2){
-					x / fwidth,
-					y / fheight,
-				};
-			else
-				view_pos = (v2){
-					x / fheight - (fwidth/fheight - 1) / 2,
-					y / fheight
-				};
-			v3 rd = get_camera_ray(scene->camera, view_pos);
+			v3 rd = get_camera_ray(scene->camera, view_pos,
+			                       aspect_ratio);
 			struct world_dist intersect =
 				get_intersection(scene, ro, rd);
 			v3 p = v3add(ro, v3scale(rd, intersect.dist));

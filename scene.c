@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <math.h>
 #include "scene.h"
 
 struct scene* scene_new() {
@@ -10,8 +11,8 @@ struct scene* scene_new() {
 		.objects	= vector_new(struct object, 16),
 		.camera		= (struct camera) {
 			.point		= (v3) {0, 0, 0},
-			.nw_corner	= (v3) {-1, 1, 1},
-			.se_corner	= (v3) {1, -1, 1}
+			.direction	= (v3) {0, 0, 1},
+			.fov		= M_PI / 2
 		}
 	};
 	return scene;
@@ -93,13 +94,13 @@ struct camera camera_from_definition_list(struct vector* properties) {
 		assert("Is a vector" && def->value.type == 1);
 		camera.point = v3_from_vector(def->value.list);
 		break;
-	case PROP_NW_CORNER:
+	case PROP_DIRECTION:
 		assert("Is a vector" && def->value.type == 1);
-		camera.nw_corner = v3_from_vector(def->value.list);
+		camera.direction = v3normalize(v3_from_vector(def->value.list));
 		break;
-	case PROP_SE_CORNER:
-		assert("Is a vector" && def->value.type == 1);
-		camera.se_corner = v3_from_vector(def->value.list);
+	case PROP_FOV:
+		assert("Is a number" && def->value.type == 0);
+		camera.fov = def->value.num / 180 * M_PI;
 		break;
 	default:
 		fprintf(stderr, "Unknown camera property\n");

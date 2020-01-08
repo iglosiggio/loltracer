@@ -36,8 +36,8 @@
 /* 	AMBIENT			"ambient" */
 %token	COLOR             	"color"
 %token	POINT             	"point"
-%token	NW_CORNER         	"nw_corner"
-%token	SE_CORNER         	"se_corner"
+%token	DIRECTION         	"direction"
+%token	FOV 	        	"fov"
 %token	DIFFUSE_INTENSITY 	"diffuse_intensity"
 %token	SPECULAR_INTENSITY	"specular_intensity"
 %token	RADIUS            	"radius"
@@ -162,8 +162,8 @@ property:
 |	AMBIENT			{ $$ = PROP_AMBIENT; }
 |	COLOR			{ $$ = PROP_COLOR; }
 |	POINT			{ $$ = PROP_POINT; }
-|	NW_CORNER		{ $$ = PROP_NW_CORNER; }
-|	SE_CORNER		{ $$ = PROP_SE_CORNER; }
+|	DIRECTION		{ $$ = PROP_DIRECTION; }
+|	FOV			{ $$ = PROP_FOV; }
 |	DIFFUSE_INTENSITY	{ $$ = PROP_DIFFUSE_INTENSITY; }
 |	SPECULAR_INTENSITY	{ $$ = PROP_SPECULAR_INTENSITY; }
 |	RADIUS			{ $$ = PROP_RADIUS; }

@@ -68,41 +68,46 @@ void update_keyboard(struct keyboard_state* key, SDL_KeyboardEvent ev) {
 
 static
 void update_camera(struct scene* scene) {
-	if (key.W) {
-		scene->camera.point.z += 0.1;
-		scene->camera.nw_corner.z += 0.1;
-		scene->camera.se_corner.z += 0.1;
-	}
+	struct camera* cam = &scene->camera;
+	const v3 up_guide = {0, 1, 0};
+	v3 right_dir = v3normalize(v3cross(cam->direction, up_guide));
+	v3 up_dir = v3normalize(v3cross(right_dir, cam->direction));
 
-	if (key.A) {
-		scene->camera.point.x -= 0.1;
-		scene->camera.nw_corner.x -= 0.1;
-		scene->camera.se_corner.x -= 0.1;
-	}
+	if (key.W)
+		cam->point = v3add(cam->point, v3scale(cam->direction, 0.1));
 
-	if (key.S) {
-		scene->camera.point.z -= 0.1;
-		scene->camera.nw_corner.z -= 0.1;
-		scene->camera.se_corner.z -= 0.1;
-	}
+	if (key.A)
+		cam->point = v3add(cam->point, v3scale(right_dir, -0.1));
 
-	if (key.D) {
-		scene->camera.point.x += 0.1;
-		scene->camera.nw_corner.x += 0.1;
-		scene->camera.se_corner.x += 0.1;
-	}
+	if (key.S)
+		cam->point = v3add(cam->point, v3scale(cam->direction, -0.1));
 
-	if (key.Space) {
-		scene->camera.point.y += 0.1;
-		scene->camera.nw_corner.y += 0.1;
-		scene->camera.se_corner.y += 0.1;
-	}
+	if (key.D)
+		cam->point = v3add(cam->point, v3scale(right_dir, 0.1));
 
-	if (key.LCtrl) {
-		scene->camera.point.y -= 0.1;
-		scene->camera.nw_corner.y -= 0.1;
-		scene->camera.se_corner.y -= 0.1;
-	}
+	if (key.Space)
+		cam->point.y += 0.1;
+
+	if (key.LCtrl)
+		cam->point.y -= 0.1;
+
+	/* TODO: Rotation feels weird because the rotations are ultra hacky */
+
+	if (key.Up)
+		cam->direction = v3normalize(v3add(cam->direction,
+		                                   v3scale(up_dir, 0.1)));
+
+	if (key.Down)
+		cam->direction = v3normalize(v3add(cam->direction,
+		                                   v3scale(up_dir, -0.1)));
+
+	if (key.Left)
+		cam->direction = v3normalize(v3add(cam->direction,
+		                                   v3scale(right_dir, -0.1)));
+
+	if (key.Right)
+		cam->direction = v3normalize(v3add(cam->direction,
+		                                    v3scale(right_dir, 0.1)));
 }
 
 static
@@ -163,7 +168,6 @@ int render_scene(struct scene* scene, size_t num_threads) {
 		data.surf = SDL_GetWindowSurface(win);
 		if (data.surf == NULL)
 			die(SDL_GetError());
-		data.stretch = false;
 
 		if (SDL_MUSTLOCK(data.surf))
 			SDL_LockSurface(data.surf);
