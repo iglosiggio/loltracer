@@ -67,7 +67,6 @@ struct world_dist get_intersection(const struct scene* scene, v3 ro, v3 rd) {
 static
 float softshadow(const struct scene* scene, v3 ro, v3 rd, size_t max_steps,
 	float max_dist, float w) {
-
 	static const float	EPSILON = 0.001;
 
 	float res = 1.0;
@@ -87,14 +86,12 @@ float softshadow(const struct scene* scene, v3 ro, v3 rd, size_t max_steps,
 
 static
 float in_shadow(const struct scene* scene, const struct light* light, v3 p) {
-	float rval = 1;
+	float light_dist = v3len(v3sub(light->point, p));
 
 	v3 dir = v3normalize(v3sub(light->point, p));
-	p = v3add(p, v3scale(dir, 0.04));
+	p = v3add(p, dir);
 
-	rval += softshadow(scene, p, dir, 128, 50, 50);
-
-	return rval;
+	return softshadow(scene, p, dir, 128, light_dist, 50);
 }
 
 static inline
@@ -132,36 +129,36 @@ v3 get_light(const struct scene* scene, v3 p, v3 n, size_t obj_id) {
 	/* ... por cada luz ... */
 	vector_foreach(struct light, scene->lights, light) {
 		float shadow = in_shadow(scene, light, p);
+
 		v3 light_pos = light->point;
 		v3 light_diffuse_intensity = light->diffuse_intensity;
 		v3 light_specular_intensity = light->specular_intensity;
 
 		v3 light_dir = v3normalize(v3sub(light_pos, p));
-		v3 reflected_dir = v3sub(v3scale(n, 2 * v3dot(light_dir, n)), 
+		v3 reflected_dir = v3sub(v3scale(n, 2 * v3dot(light_dir, n)),
 					 light_dir);
 		v3 camera_dir = v3normalize(v3sub(cam_pos, p));
 
 		/* Ajusto la iluminación mate según ángulo y sombra */
-		float diffuse_incidence = clamp(v3dot(n, light_dir), 0, 1)
-		                        * shadow;
+		float diffuse_incidence = clamp(v3dot(n, light_dir), 0, 1);
 
-		light_diffuse_intensity =
-			v3scale(light_diffuse_intensity, diffuse_incidence);
-		light_diffuse_intensity =
-			v3mul(light_diffuse_intensity, mat.diffuse);
+		light_diffuse_intensity = v3scale(light_diffuse_intensity,
+		                                  shadow * diffuse_incidence);
+		light_diffuse_intensity = v3mul(light_diffuse_intensity,
+		                                mat.diffuse);
 
 		total_light = v3add(total_light, light_diffuse_intensity);
 
 		/* Ajusto la iluminación especular según ángulo */
-		float specular_incidence = powf(
+		float specular_incidence = diffuse_incidence * powf(
 			clamp(v3dot(reflected_dir, camera_dir), 0, 1),
 			mat.shininess
 		);
 
-		light_specular_intensity =
-			v3scale(light_specular_intensity, specular_incidence);
-		light_specular_intensity =
-			v3mul(light_specular_intensity, mat.specular);
+		light_specular_intensity = v3scale(light_specular_intensity,
+		                                   shadow * specular_incidence);
+		light_specular_intensity = v3mul(light_specular_intensity,
+		                                 mat.specular);
 
 		total_light = v3add(total_light, light_specular_intensity);
 	}
