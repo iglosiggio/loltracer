@@ -7,17 +7,17 @@ materials {
 	},
 
 	{
-		shininess	= 0.2,
+		shininess	= 4,
 		diffuse		= (0.15, 0.22, 0.19),
 		specular	= (0.02, 0.02, 0.02),
-		ambient		= (0.1, 0.1, 0.1)
+		ambient		= (0.15, 0.22, 0.19)
 	},
 
 	{
 		shininess	= 25,
 		diffuse		= (0.04, 0.03, 0.02),
 		specular	= (0.05, 0.05, 0.05),
-		ambient		= (0.05, 0.05, 0.05)
+		ambient		= (0.04, 0.03, 0.02)
 	}
 }
 
