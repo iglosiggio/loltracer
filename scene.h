@@ -27,27 +27,14 @@ enum components {
 	OBJ_POINT_LIGHT,
 	OBJ_SPHERE,
 	OBJ_BOX,
-	OBJ_PLANE
+	OBJ_PLANE,
 };
 
 enum value_type {
 	VAL_NUM,
 	VAL_LIST,
-	VAL_ID
-};
-
-struct definition_value {
-	enum value_type	type;
-	union {
-		float		num;
-		struct vector*	list;
-		size_t		id;
-	};
-};
-
-struct definition {
-	enum property		prop;
-	struct definition_value	value;
+	VAL_ID,
+	VAL_OBJ
 };
 
 struct material {
@@ -94,11 +81,29 @@ struct scene {
 	struct camera	camera;
 };
 
+
+struct definition_value {
+	enum value_type	type;
+	union {
+		float		num;
+		struct vector*	list;
+		size_t		id;
+		struct object	obj;
+	};
+};
+
+struct definition {
+	enum property		prop;
+	struct definition_value	value;
+};
+
 struct scene* scene_new();
 void scene_free(struct scene*);
 void scene_add_component_from_definition_list(struct scene*, int,
 	struct vector*);
 bool scene_validate_materials(const struct scene*);
+
+struct object object_from_definition_list(int type, struct vector* props);
 
 struct material material_from_definition_list(struct vector*);
 

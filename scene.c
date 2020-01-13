@@ -247,6 +247,22 @@ void scene_add_component_from_definition_list(struct scene* scene, int type,
 	}
 }
 
+struct object object_from_definition_list(int type, struct vector* props) {
+	/* TODO: Proper error management */
+	switch (type) {
+	case OBJ_SPHERE:
+		return sphere_from_definition_list(props);
+	case OBJ_BOX:
+		return box_from_definition_list(props);
+	case OBJ_PLANE:
+		return plane_from_definition_list(props);
+	default:
+		fprintf(stderr, "Unknown scene object\n");
+		exit(1);
+	}
+}
+
+
 bool scene_validate_materials(const struct scene* scene) {
 	const size_t material_count = scene->materials->size;
 

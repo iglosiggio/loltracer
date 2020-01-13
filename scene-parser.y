@@ -130,6 +130,10 @@ value:
 		{ $$ = (struct definition_value) {
 			.type = VAL_ID,
 			.id = $1}; }
+|	type '{' definition_list '}'
+		{ $$ = (struct definition_value) {
+			.type = VAL_OBJ,
+			.obj = object_from_definition_list($1, $3) }; }
 ;
 
 numbers:
