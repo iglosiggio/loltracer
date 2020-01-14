@@ -11,7 +11,7 @@ static inline
 float get_obj_dist(const struct object* obj, v3 p) {
 	v3 point = v3sub(p, obj->point);
 	switch (obj->type) {
-		float a_dist, b_dist, h, k;
+		float a_dist, b_dist;
 	case OBJ_SPHERE:
 		return sdSphere(point, obj->sphere.radius);
 	case OBJ_BOX:
@@ -19,12 +19,9 @@ float get_obj_dist(const struct object* obj, v3 p) {
 	case OBJ_PLANE:
 		return point.y;
 	case OBJ_SMOOTH_UNION:
-		k = obj->smooth_op.smoothness;
 		a_dist = get_obj_dist(obj->smooth_op.a, p);
 		b_dist = get_obj_dist(obj->smooth_op.b, p);
-		h = .5f + .5f * (b_dist - a_dist) / k;
-		h = clamp(h, 0.f, 1.f);
-		return lerp(b_dist, a_dist, h) - k * h * (1.f - h);
+		return sminf(a_dist, b_dist, obj->smooth_op.smoothness);
 	default:
 		fprintf(stderr, "Unknown scene object\n");
 	}

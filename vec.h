@@ -2,12 +2,7 @@
 #define __VEC_H__
 
 #include <math.h>
-
-static float clamp(float v, float min, float max)
-{ v = fmaxf(v, min); return fminf(v, max); }
-
-static float lerp(float from, float to, float ratio)
-{ return from + (to - from) * ratio; }
+#include "float.h"
 
 typedef struct v2 {
 	float x;
