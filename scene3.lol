@@ -32,10 +32,17 @@ scene {
 		fov		= 90
 	},
 
-	sphere {
-		point		= (0, 0, -4),
-		radius		= 4,
-		material	= #1
+	smooth-union {
+		smoothness	= 4,
+		material	= #1,
+		a =  sphere {
+			point		= (0, 0, -4),
+			radius		= 4
+		},
+		b =  sphere {
+			point		= (0, 0, -12),
+			radius		= 4
+		}
 	},
 
 	plane {
