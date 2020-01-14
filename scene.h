@@ -18,7 +18,10 @@ enum property {
 	PROP_RADIUS,
 	PROP_MATERIAL,
 	PROP_POINT2,
-	PROP_Y
+	PROP_Y,
+	PROP_SMOOTHNESS,
+	PROP_A,
+	PROP_B
 };
 
 enum components {
@@ -28,6 +31,7 @@ enum components {
 	OBJ_SPHERE,
 	OBJ_BOX,
 	OBJ_PLANE,
+	OBJ_SMOOTH_UNION
 };
 
 enum value_type {
@@ -64,6 +68,11 @@ struct object {
 			v3	point2;
 			float	radius;
 		} box;
+		struct {
+			float smoothness;
+			struct object* a;
+			struct object* b;
+		} smooth_op;
 	};
 };
 

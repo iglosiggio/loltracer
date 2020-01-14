@@ -8,28 +8,36 @@ struct world_dist {
 };
 
 static inline
+float get_obj_dist(const struct object* obj, v3 p) {
+	v3 point = v3sub(p, obj->point);
+	switch (obj->type) {
+		float a_dist, b_dist, h, k;
+	case OBJ_SPHERE:
+		return sdSphere(point, obj->sphere.radius);
+	case OBJ_BOX:
+		return sdRoundBox(point, obj->box.point2, obj->box.radius);
+	case OBJ_PLANE:
+		return point.y;
+	case OBJ_SMOOTH_UNION:
+		k = obj->smooth_op.smoothness;
+		a_dist = get_obj_dist(obj->smooth_op.a, p);
+		b_dist = get_obj_dist(obj->smooth_op.b, p);
+		h = 0.5 + 0.5 * (b_dist - a_dist) / k;
+		h = clamp(h, 0, 1);
+		return lerp(b_dist, a_dist, h) - k * h * (1.0 - h);
+	default:
+		fprintf(stderr, "Unknown scene object\n");
+	}
+}
+
+static inline
 struct world_dist sdf(const struct scene* scene, v3 p) {
 	size_t obj_id = 0;
 	float obj_dist = INFINITY;
 	struct world_dist rval = {obj_dist, obj_id};
 
 	vector_foreach(struct object, scene->objects, obj) {
-		v3 point = v3sub(p, obj->point);
-		switch (obj->type) {
-		case OBJ_SPHERE:
-			obj_dist = sdSphere(point, obj->sphere.radius);
-			break;
-		case OBJ_BOX:
-			obj_dist = sdRoundBox(point, obj->box.point2,
-			                      obj->box.radius);
-			break;
-		case OBJ_PLANE:
-			obj_dist = point.y;
-			break;
-		default:
-			fprintf(stderr, "Unknown scene object");
-		}
-
+		obj_dist = get_obj_dist(obj, p);
 		obj_id += 1;
 		if (obj_dist < rval.dist)
 			rval = (struct world_dist) {obj_dist, obj_id};

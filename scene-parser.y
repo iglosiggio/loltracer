@@ -28,6 +28,7 @@
 %token	SPHERE     	"sphere"
 %token	BOX        	"box"
 %token	PLANE      	"plane"
+%token	SMOOTH_UNION	"smooth_union"
 
 /* Property tokens */
 %token	SHININESS         	"shininess"
@@ -44,6 +45,9 @@
 %token	MATERIAL          	"material"
 %token	POINT2            	"point2"
 %token	Y                 	"y"
+%token	SMOOTHNESS		"smoothness"
+%token	A			"a"
+%token	B			"b"
 
 /* Vector of numbers */
 %nterm	<struct vector*>	num_list
@@ -157,6 +161,7 @@ type:
 |	SPHERE		{ $$ = OBJ_SPHERE; }
 |	BOX		{ $$ = OBJ_BOX; }
 |	PLANE		{ $$ = OBJ_PLANE; }
+|	SMOOTH_UNION	{ $$ = OBJ_SMOOTH_UNION; }
 ;
 
 property:
@@ -174,6 +179,9 @@ property:
 |	MATERIAL		{ $$ = PROP_MATERIAL; }
 |	POINT2			{ $$ = PROP_POINT2; }
 |	Y			{ $$ = PROP_Y; }
+|	SMOOTHNESS		{ $$ = PROP_SMOOTHNESS; }
+|	A			{ $$ = PROP_A; }
+|	B			{ $$ = PROP_B; }
 ;
 
 %%

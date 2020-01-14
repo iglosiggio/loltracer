@@ -22,6 +22,8 @@
 "sphere"	{ return SPHERE; }
 "box"		{ return BOX; }
 "plane"		{ return PLANE; }
+"smooth_union"		{ return SMOOTH_UNION; }
+"smooth-union"		{ return SMOOTH_UNION; }
 
 "shininess"		{ return SHININESS; }
 "diffuse"		{ return DIFFUSE; }
@@ -39,6 +41,9 @@
 "material"		{ return MATERIAL; }
 "point2"		{ return POINT2; }
 "y"			{ return Y; }
+"smoothness"		{ return SMOOTHNESS; }
+"a"			{ return A; }
+"b"			{ return B; }
 
 [,(){}=]	{ return yytext[0]; }
 

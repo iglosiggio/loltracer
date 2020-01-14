@@ -207,7 +207,39 @@ struct object plane_from_definition_list(struct vector* properties) {
 		obj.point = (v3) {0, def->value.num, 0};
 		break;
 	default:
-		fprintf(stderr, "Unknown sphere property\n");
+		fprintf(stderr, "Unknown plane property\n");
+		exit(1);
+	}
+
+	return obj;
+}
+
+struct object smooth_union_from_definition_list(struct vector* properties) {
+	/* TODO: Proper error management */
+	struct object obj = { .type = OBJ_SMOOTH_UNION, .point = (v3){0,0,0} };
+
+	vector_foreach(struct definition, properties, def)
+	switch (def->prop) {
+	case PROP_MATERIAL:
+		assert("Is an ID" && def->value.type == 2);
+		obj.material = def->value.id;
+		break;
+	case PROP_SMOOTHNESS:
+		assert("Is a number" && def->value.type == 0);
+		obj.smooth_op.smoothness = def->value.num;
+		break;
+	case PROP_A:
+		assert("Is an object"  && def->value.type == VAL_OBJ);
+		obj.smooth_op.a = malloc(sizeof(struct object));
+		*obj.smooth_op.a = def->value.obj;
+		break;
+	case PROP_B:
+		assert("Is an object"  && def->value.type == VAL_OBJ);
+		obj.smooth_op.b = malloc(sizeof(struct object));
+		*obj.smooth_op.b = def->value.obj;
+		break;
+	default:
+		fprintf(stderr, "Unknown smooth-union property\n");
 		exit(1);
 	}
 
@@ -241,6 +273,10 @@ void scene_add_component_from_definition_list(struct scene* scene, int type,
 		vector_add(struct object, scene->objects) =
 			plane_from_definition_list(props);
 		break;
+	case OBJ_SMOOTH_UNION:
+		vector_add(struct object, scene->objects) =
+			smooth_union_from_definition_list(props);
+		break;
 	default:
 		fprintf(stderr, "Unknown scene component\n");
 		exit(1);
@@ -256,6 +292,8 @@ struct object object_from_definition_list(int type, struct vector* props) {
 		return box_from_definition_list(props);
 	case OBJ_PLANE:
 		return plane_from_definition_list(props);
+	case OBJ_SMOOTH_UNION:
+		return smooth_union_from_definition_list(props);
 	default:
 		fprintf(stderr, "Unknown scene object\n");
 		exit(1);
