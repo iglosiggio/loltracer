@@ -72,7 +72,7 @@
 %% /* Grammar rules and actions follow. */
 input:
 	materials scene
-		{ vector_free($2->materials);
+		{ vector_free($2->materials, NULL);
 		  $2->materials = $1;
 		  *scene = $2; }
 ;
@@ -98,16 +98,19 @@ material_list:
 
 material:
 	'{' definition_list '}'
-		{ $$ = material_from_definition_list($2); }
+		{ $$ = material_from_definition_list($2);
+		  vector_free($2, definition_free); }
 ;
 
 scene_info:
 	scene_info ',' type '{' definition_list '}'
 		{ scene_add_component_from_definition_list($1, $3, $5);
-		  $$ = $1; }
+		  $$ = $1;
+		  vector_free($5, definition_free); }
 |	type '{' definition_list '}'
 		{ $$ = scene_new();
-		  scene_add_component_from_definition_list($$, $1, $3); }
+		  scene_add_component_from_definition_list($$, $1, $3);
+		  vector_free($3, definition_free); }
 ;
 
 definition_list:
@@ -137,7 +140,8 @@ value:
 |	type '{' definition_list '}'
 		{ $$ = (struct definition_value) {
 			.type = VAL_OBJ,
-			.obj = object_from_definition_list($1, $3) }; }
+			.obj = object_from_definition_list($1, $3) };
+		  vector_free($3, definition_free); }
 ;
 
 numbers:
@@ -202,6 +206,9 @@ struct scene* scene_parse(const char* filename) {
 		return NULL;
 
 	yyparse(&scene);
+
+	if (yyin != stdin)
+		fclose(yyin);
 
 	return scene;
 }

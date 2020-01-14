@@ -118,7 +118,10 @@ void scene_add_component_from_definition_list(struct scene*, int,
 bool scene_validate_materials(const struct scene*);
 
 struct object object_from_definition_list(int type, struct vector* props);
+void object_free(void* obj_ptr);
 
 struct material material_from_definition_list(struct vector*);
+
+void definition_free(void* def_ptr);
 
 #endif /* __SCENE_H__ */

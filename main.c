@@ -211,5 +211,7 @@ int main(int argc, char* argv[]) {
 
 	render_scene(scene, num_threads);
 
+	scene_free(scene);
+
 	return 0;
 }

@@ -1,7 +1,32 @@
-#include <stdio.h>
-#include <string.h>
 #include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include "scene.h"
+
+void object_free(void* obj_ptr) {
+	struct object* obj = obj_ptr;
+
+	switch (obj->type) {
+	case OBJ_SMOOTH_UNION:
+		free(obj->smooth_op.a);
+		free(obj->smooth_op.b);
+		break;
+	}
+}
+
+void definition_free(void* def_ptr) {
+	struct definition* def = def_ptr;
+
+	switch (def->value.type) {
+	case VAL_LIST:
+		vector_free(def->value.list, NULL);
+		break;
+	case VAL_OBJ:
+		object_free(&def->value.obj);
+		break;
+	}
+}
 
 struct scene* scene_new() {
 	struct scene* scene = malloc(sizeof(struct scene));
@@ -20,9 +45,9 @@ struct scene* scene_new() {
 }
 
 void scene_free(struct scene* scene) {
-	vector_free(scene->materials);
-	vector_free(scene->lights);
-	vector_free(scene->objects);
+	vector_free(scene->materials, NULL);
+	vector_free(scene->lights, NULL);
+	vector_free(scene->objects, object_free);
 	free(scene);
 }
 

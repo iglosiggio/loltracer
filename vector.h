@@ -3,6 +3,16 @@
 #include <stdlib.h>
 #include <assert.h>
 
+#define vector_add(type, vec)		(*(type*) _vector_add((vec)))
+#define vector_get(type, vec, idx) 	(*(type*) _vector_get((vec), (idx)))
+#define vector_new(type, capacity)	_vector_new(sizeof(type), capacity)
+#define vector_foreach(type, vec, var)	\
+	for (type* var = (type*)(vec)->data; \
+	     var != (type*)(vec)->data + (vec)->size; \
+	     var++)
+
+typedef void (*free_func)(void*);
+
 struct vector {
 	size_t size;
 	size_t capacity;
@@ -22,7 +32,13 @@ struct vector* _vector_new(size_t elem_size, size_t initial_capacity) {
 }
 
 static inline
-void vector_free(struct vector* vec) {
+void vector_free(struct vector* vec, free_func f) {
+	if (f)
+		for (void* p = vec->data;
+		     p != vec->data + vec->size * vec->elem_size;
+		     p += vec->elem_size)
+			f(p);
+
 	free(vec->data);
 	free(vec);
 }
@@ -44,13 +60,5 @@ void* _vector_get(const struct vector* vec, size_t idx) {
 
 	return vec->data + idx * vec->elem_size;
 }
-
-#define vector_add(type, vec)		(*(type*) _vector_add((vec)))
-#define vector_get(type, vec, idx) 	(*(type*) _vector_get((vec), (idx)))
-#define vector_new(type, capacity)	_vector_new(sizeof(type), capacity)
-#define vector_foreach(type, vec, var)	\
-	for (type* var = (type*)(vec)->data; \
-	     var != (type*)(vec)->data + (vec)->size; \
-	     var++)
 
 #endif /* __VECTOR_H__ */
