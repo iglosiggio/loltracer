@@ -30,8 +30,8 @@ void vector_free(struct vector* vec) {
 static inline
 void* _vector_add(struct vector* vec) {
 	if (vec->size >= vec->capacity) {
-		vec->capacity = vec->capacity * vec->elem_size * 2;
-		vec->data = realloc(vec->data, vec->capacity);
+		vec->capacity = vec->capacity * vec->elem_size * 2 + vec->elem_size;
+		vec->data = realloc(vec->data, vec->capacity * vec->elem_size);
 		assert(vec->data != NULL);
 	}
 
