@@ -68,6 +68,11 @@ struct object {
 			v3	point2;
 			float	radius;
 		} box;
+
+		struct {
+			float y;
+		} plane;
+
 		struct {
 			float smoothness;
 			struct object* a;

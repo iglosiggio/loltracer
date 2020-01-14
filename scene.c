@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 #include <math.h>
 #include "scene.h"
 
@@ -35,36 +36,78 @@ v3 v3_from_vector(struct vector* vec) {
 	};
 }
 
+/* TODO: Proper error management */
 
-struct material material_from_definition_list(struct vector* properties) {
-	/* TODO: Proper error management */
-	struct material material;
-
-	vector_foreach(struct definition, properties, def)
-	switch (def->prop) {
-	case PROP_SHININESS:
-		assert("Is a number" && def->value.type == 0);
-		material.shininess = def->value.num;
-		break;
-	case PROP_DIFFUSE:
-		assert("Is a vector" && def->value.type == 1);
-		material.diffuse = v3_from_vector(def->value.list);
-		break;
-	case PROP_SPECULAR:
-		assert("Is a vector" && def->value.type == 1);
-		material.specular = v3_from_vector(def->value.list);
-		break;
-	case PROP_AMBIENT:
-		assert("Is a vector" && def->value.type == 1);
-		material.ambient = v3_from_vector(def->value.list);
-		break;
-	default:
-		fprintf(stderr, "Unknown material property\n");
-		exit(1);
-	}
-
-	return material;
+static inline
+float prop_check_num(const struct definition* def) {
+	assert("Is a number" && def->value.type == VAL_NUM);
+	return def->value.num;
 }
+
+static inline
+v3 prop_check_v3(const struct definition* def) {
+	assert("Is a list" && def->value.type == VAL_LIST);
+	return v3_from_vector(def->value.list);
+}
+
+static inline
+size_t prop_check_id(const struct definition* def) {
+	assert("Is an ID" && def->value.type == VAL_ID);
+	return def->value.id;
+}
+
+struct object* prop_check_obj(const struct definition* def) {
+	struct object* rval;
+	assert("Is an object" && def->value.type == VAL_OBJ), \
+	rval = malloc(sizeof(struct object));
+	*rval = def->value.obj;
+	return rval;
+}
+
+#define PROP_CASE(prop, field) \
+	case PROP_##prop: \
+		obj.field = _Generic((obj.field), \
+			float:		prop_check_num, \
+			v3:		prop_check_v3, \
+			size_t:		prop_check_id, \
+			struct object*:	prop_check_obj \
+		)(def); \
+		break;
+
+#define NAMED_PROPERTY_EXTRACTOR_BEGIN(typename, name) \
+struct typename name##_from_definition_list(struct vector* properties) { \
+	const char* extractor_type = #name; \
+	struct typename obj; \
+	memset(&obj, 0, sizeof(obj)); \
+
+#define PROPERTY_EXTRACTOR_BEGIN(typename) \
+struct typename typename##_from_definition_list(struct vector* properties) { \
+	const char* extractor_type = #typename; \
+	struct typename obj; \
+	memset(&obj, 0, sizeof(obj)); \
+
+#define SWITCH_BEGIN \
+	vector_foreach(struct definition, properties, def) \
+	switch (def->prop) {
+
+#define SWITCH_END \
+	default: \
+		fprintf(stderr, "Unknown %s property\n", extractor_type); \
+		exit(1); \
+	} \
+
+#define PROPERTY_EXTRACTOR_END \
+	return obj; \
+}
+
+PROPERTY_EXTRACTOR_BEGIN(material)
+	SWITCH_BEGIN
+		PROP_CASE(SHININESS,	shininess);
+		PROP_CASE(DIFFUSE,	diffuse);
+		PROP_CASE(SPECULAR,	specular);
+		PROP_CASE(AMBIENT,	ambient);
+	SWITCH_END
+PROPERTY_EXTRACTOR_END
 
 struct v3 ambient_from_definition_list(struct vector* properties) {
 	/* TODO: Proper error management */
@@ -73,8 +116,7 @@ struct v3 ambient_from_definition_list(struct vector* properties) {
 	vector_foreach(struct definition, properties, def)
 	switch (def->prop) {
 	case PROP_COLOR:
-		assert("Is a vector" && def->value.type == 1);
-		ambient_color = v3_from_vector(def->value.list);
+		ambient_color = prop_check_v3(def);
 		break;
 	default:
 		fprintf(stderr, "Unknown ambient property\n");
@@ -84,167 +126,68 @@ struct v3 ambient_from_definition_list(struct vector* properties) {
 	return ambient_color;
 }
 
-struct camera camera_from_definition_list(struct vector* properties) {
-	/* TODO: Proper error management */
-	struct camera camera;
+PROPERTY_EXTRACTOR_BEGIN(camera)
+	SWITCH_BEGIN
+		PROP_CASE(POINT,	point);
+		PROP_CASE(DIRECTION,	direction);
+		PROP_CASE(FOV,		fov);
+	SWITCH_END
 
-	vector_foreach(struct definition, properties, def)
-	switch (def->prop) {
-	case PROP_POINT:
-		assert("Is a vector" && def->value.type == 1);
-		camera.point = v3_from_vector(def->value.list);
-		break;
-	case PROP_DIRECTION:
-		assert("Is a vector" && def->value.type == 1);
-		camera.direction = v3normalize(v3_from_vector(def->value.list));
-		break;
-	case PROP_FOV:
-		assert("Is a number" && def->value.type == 0);
-		camera.fov = def->value.num / 180 * M_PI;
-		break;
-	default:
-		fprintf(stderr, "Unknown camera property\n");
-		exit(1);
-	}
+	obj.direction = v3normalize(obj.direction);
+	obj.fov = obj.fov / 180 * M_PI;
+PROPERTY_EXTRACTOR_END
 
-	return camera;
-}
+PROPERTY_EXTRACTOR_BEGIN(light)
+	SWITCH_BEGIN
+		PROP_CASE(POINT,		point);
+		PROP_CASE(DIFFUSE_INTENSITY,	diffuse_intensity);
+		PROP_CASE(SPECULAR_INTENSITY,	specular_intensity);
+	SWITCH_END
+PROPERTY_EXTRACTOR_END
 
-struct light point_light_from_definition_list(struct vector* properties) {
-	/* TODO: Proper error management */
-	struct light light;
+NAMED_PROPERTY_EXTRACTOR_BEGIN(object, sphere)
+	obj.type = OBJ_SPHERE;
 
-	vector_foreach(struct definition, properties, def)
-	switch (def->prop) {
-	case PROP_POINT:
-		assert("Is a vector" && def->value.type == 1);
-		light.point = v3_from_vector(def->value.list);
-		break;
-	case PROP_DIFFUSE_INTENSITY:
-		assert("Is a vector" && def->value.type == 1);
-		light.diffuse_intensity = v3_from_vector(def->value.list);
-		break;
-	case PROP_SPECULAR_INTENSITY:
-		assert("Is a vector" && def->value.type == 1);
-		light.specular_intensity = v3_from_vector(def->value.list);
-		break;
-	default:
-		fprintf(stderr, "Unknown light property\n");
-		exit(1);
-	}
+	SWITCH_BEGIN
+		PROP_CASE(POINT,	point);
+		PROP_CASE(MATERIAL,	material);
+		PROP_CASE(RADIUS,	sphere.radius);
+	SWITCH_END
+PROPERTY_EXTRACTOR_END
 
-	return light;
-}
+NAMED_PROPERTY_EXTRACTOR_BEGIN(object, box)
+	obj.type = OBJ_BOX;
 
-struct object sphere_from_definition_list(struct vector* properties) {
-	/* TODO: Proper error management */
-	struct object obj = { .type = OBJ_SPHERE };
+	SWITCH_BEGIN
+		PROP_CASE(POINT,	point);
+		PROP_CASE(MATERIAL,	material);
+		PROP_CASE(POINT2,	box.point2);
+		PROP_CASE(RADIUS,	box.radius);
+	SWITCH_END
+PROPERTY_EXTRACTOR_END
 
-	vector_foreach(struct definition, properties, def)
-	switch (def->prop) {
-	case PROP_POINT:
-		assert("Is a vector" && def->value.type == 1);
-		obj.point = v3_from_vector(def->value.list);
-		break;
-	case PROP_MATERIAL:
-		assert("Is an ID" && def->value.type == 2);
-		obj.material = def->value.id;
-		break;
-	case PROP_RADIUS:
-		assert("Is a number" && def->value.type == 0);
-		obj.sphere.radius = def->value.num;
-		break;
-	default:
-		fprintf(stderr, "Unknown sphere property\n");
-		exit(1);
-	}
 
-	return obj;
-}
+NAMED_PROPERTY_EXTRACTOR_BEGIN(object, plane)
+	obj.type = OBJ_PLANE;
 
-struct object box_from_definition_list(struct vector* properties) {
-	/* TODO: Proper error management */
-	struct object obj = { .type = OBJ_BOX };
+	SWITCH_BEGIN
+		PROP_CASE(MATERIAL,	material);
+		PROP_CASE(Y,		plane.y);
+	SWITCH_END
 
-	vector_foreach(struct definition, properties, def)
-	switch (def->prop) {
-	case PROP_POINT:
-		assert("Is a vector" && def->value.type == 1);
-		obj.point = v3_from_vector(def->value.list);
-		break;
-	case PROP_MATERIAL:
-		assert("Is an ID" && def->value.type == 2);
-		obj.material = def->value.id;
-		break;
-	case PROP_POINT2:
-		assert("Is a vector" && def->value.type == 1);
-		obj.box.point2 = v3_from_vector(def->value.list);
-		break;
-	case PROP_RADIUS:
-		assert("Is a number" && def->value.type == 0);
-		obj.box.radius = def->value.num;
-		break;
-	default:
-		fprintf(stderr, "Unknown box property\n");
-		exit(1);
-	}
+	obj.point = (v3) {0, obj.plane.y, 0};
+PROPERTY_EXTRACTOR_END
 
-	return obj;
-}
+NAMED_PROPERTY_EXTRACTOR_BEGIN(object, smooth_union)
+	obj.type = OBJ_SMOOTH_UNION;
 
-struct object plane_from_definition_list(struct vector* properties) {
-	/* TODO: Proper error management */
-	struct object obj = { .type = OBJ_PLANE };
-
-	vector_foreach(struct definition, properties, def)
-	switch (def->prop) {
-	case PROP_MATERIAL:
-		assert("Is an ID" && def->value.type == 2);
-		obj.material = def->value.id;
-		break;
-	case PROP_Y:
-		assert("Is a number" && def->value.type == 0);
-		obj.point = (v3) {0, def->value.num, 0};
-		break;
-	default:
-		fprintf(stderr, "Unknown plane property\n");
-		exit(1);
-	}
-
-	return obj;
-}
-
-struct object smooth_union_from_definition_list(struct vector* properties) {
-	/* TODO: Proper error management */
-	struct object obj = { .type = OBJ_SMOOTH_UNION, .point = (v3){0,0,0} };
-
-	vector_foreach(struct definition, properties, def)
-	switch (def->prop) {
-	case PROP_MATERIAL:
-		assert("Is an ID" && def->value.type == 2);
-		obj.material = def->value.id;
-		break;
-	case PROP_SMOOTHNESS:
-		assert("Is a number" && def->value.type == 0);
-		obj.smooth_op.smoothness = def->value.num;
-		break;
-	case PROP_A:
-		assert("Is an object"  && def->value.type == VAL_OBJ);
-		obj.smooth_op.a = malloc(sizeof(struct object));
-		*obj.smooth_op.a = def->value.obj;
-		break;
-	case PROP_B:
-		assert("Is an object"  && def->value.type == VAL_OBJ);
-		obj.smooth_op.b = malloc(sizeof(struct object));
-		*obj.smooth_op.b = def->value.obj;
-		break;
-	default:
-		fprintf(stderr, "Unknown smooth-union property\n");
-		exit(1);
-	}
-
-	return obj;
-}
+	SWITCH_BEGIN
+		PROP_CASE(MATERIAL,	material);
+		PROP_CASE(SMOOTHNESS,	smooth_op.smoothness);
+		PROP_CASE(A,		smooth_op.a);
+		PROP_CASE(B,		smooth_op.b);
+	SWITCH_END
+PROPERTY_EXTRACTOR_END
 
 void scene_add_component_from_definition_list(struct scene* scene, int type,
 	struct vector* props) {
@@ -259,7 +202,7 @@ void scene_add_component_from_definition_list(struct scene* scene, int type,
 		break;
 	case OBJ_POINT_LIGHT:
 		vector_add(struct light, scene->lights) =
-			point_light_from_definition_list(props);
+			light_from_definition_list(props);
 		break;
 	case OBJ_SPHERE:
 		vector_add(struct object, scene->objects) =
