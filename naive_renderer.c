@@ -22,9 +22,9 @@ float get_obj_dist(const struct object* obj, v3 p) {
 		k = obj->smooth_op.smoothness;
 		a_dist = get_obj_dist(obj->smooth_op.a, p);
 		b_dist = get_obj_dist(obj->smooth_op.b, p);
-		h = 0.5 + 0.5 * (b_dist - a_dist) / k;
-		h = clamp(h, 0, 1);
-		return lerp(b_dist, a_dist, h) - k * h * (1.0 - h);
+		h = .5f + .5f * (b_dist - a_dist) / k;
+		h = clamp(h, 0.f, 1.f);
+		return lerp(b_dist, a_dist, h) - k * h * (1.f - h);
 	default:
 		fprintf(stderr, "Unknown scene object\n");
 	}
@@ -50,11 +50,11 @@ struct world_dist sdf(const struct scene* scene, v3 p) {
 static
 struct world_dist get_intersection(const struct scene* scene, v3 ro, v3 rd) {
 	static const size_t	MAX_STEPS = 256;
-	static const float	EPSILON = 0.001;
-	static const float	MAX_DIST = 100;
+	static const float	EPSILON = 0.001f;
+	static const float	MAX_DIST = 100.f;
 
 	size_t	id = 0;
-	float	dist = 0;
+	float	dist = 0.f;
 	
 	for (size_t i = 0; i < MAX_STEPS; i++) {
 		v3 p = v3add(ro, v3scale(rd, dist));
@@ -75,10 +75,10 @@ struct world_dist get_intersection(const struct scene* scene, v3 ro, v3 rd) {
 static
 float softshadow(const struct scene* scene, v3 ro, v3 rd, size_t max_steps,
 	float max_dist, float w) {
-	static const float	EPSILON = 0.001;
+	static const float	EPSILON = 0.001f;
 
-	float res = 1.0;
-	float dist = 0;
+	float res = 1.f;
+	float dist = 0.f;
 
 	for (size_t i = 0; i < max_steps; i++) {
 		v3 p = v3add(ro, v3scale(rd, dist));
@@ -88,7 +88,7 @@ float softshadow(const struct scene* scene, v3 ro, v3 rd, size_t max_steps,
 		if (res < -1 || dist > max_dist)
 			break;
 	}
-	res = fmaxf(res, 0.0);
+	res = fmaxf(res, 0.f);
 	return res;
 }
 
@@ -99,7 +99,7 @@ float in_shadow(const struct scene* scene, const struct light* light, v3 p) {
 	v3 dir = v3normalize(v3sub(light->point, p));
 	p = v3add(p, dir);
 
-	return softshadow(scene, p, dir, 128, light_dist, 50);
+	return softshadow(scene, p, dir, 128, light_dist, 50.f);
 }
 
 static inline
@@ -115,11 +115,11 @@ struct material get_material(const struct scene* scene, size_t obj_id) {
 }
 
 static v3 get_normal(const struct scene* scene, v3 p, float dist) {
-	static const v3 k0 = { 1, -1, -1};
-	static const v3 k1 = {-1, -1,  1};
-	static const v3 k2 = {-1,  1, -1};
-	static const v3 k3 = { 1,  1,  1};
-	const float h = dist / 100;
+	static const v3 k0 = { 1.f, -1.f, -1.f};
+	static const v3 k1 = {-1.f, -1.f,  1.f};
+	static const v3 k2 = {-1.f,  1.f, -1.f};
+	static const v3 k3 = { 1.f,  1.f,  1.f};
+	const float h = dist / 100.f;
 	const v3 p0 = v3scale(k0, sdf(scene, v3add(p, v3scale(k0, h))).dist);
 	const v3 p1 = v3scale(k1, sdf(scene, v3add(p, v3scale(k1, h))).dist);
 	const v3 p2 = v3scale(k2, sdf(scene, v3add(p, v3scale(k2, h))).dist);
@@ -131,7 +131,7 @@ static v3 get_normal(const struct scene* scene, v3 p, float dist) {
 static
 v3 get_light(const struct scene* scene, v3 p, v3 n, size_t obj_id) {
 	struct material mat = get_material(scene, obj_id);
-	v3 total_light = {0, 0, 0};
+	v3 total_light = {0.f, 0.f, 0.f};
 	v3 cam_pos = scene->camera.point;
 	
 	/* ... por cada luz ... */
@@ -143,12 +143,12 @@ v3 get_light(const struct scene* scene, v3 p, v3 n, size_t obj_id) {
 		v3 light_specular_intensity = light->specular_intensity;
 
 		v3 light_dir = v3normalize(v3sub(light_pos, p));
-		v3 reflected_dir = v3sub(v3scale(n, 2 * v3dot(light_dir, n)),
+		v3 reflected_dir = v3sub(v3scale(n, 2.f * v3dot(light_dir, n)),
 					 light_dir);
 		v3 camera_dir = v3normalize(v3sub(cam_pos, p));
 
 		/* Ajusto la iluminación mate según ángulo y sombra */
-		float diffuse_incidence = clamp(v3dot(n, light_dir), 0, 1);
+		float diffuse_incidence = clamp(v3dot(n, light_dir), 0.f, 1.f);
 
 		light_diffuse_intensity = v3scale(light_diffuse_intensity,
 		                                  shadow * diffuse_incidence);
@@ -159,7 +159,7 @@ v3 get_light(const struct scene* scene, v3 p, v3 n, size_t obj_id) {
 
 		/* Ajusto la iluminación especular según ángulo */
 		float specular_incidence = diffuse_incidence * powf(
-			clamp(v3dot(reflected_dir, camera_dir), 0, 1),
+			clamp(v3dot(reflected_dir, camera_dir), 0.f, 1.f),
 			mat.shininess
 		);
 
@@ -174,15 +174,15 @@ v3 get_light(const struct scene* scene, v3 p, v3 n, size_t obj_id) {
 	v3 light_ambient_intensity = v3mul(scene->ambient_color, mat.ambient);
 	total_light = v3add(total_light, light_ambient_intensity);
 
-	return v3clamp(total_light, 0, 1);
+	return v3clamp(total_light, 0.f, 1.f);
 }
 
 /* Based on https://www.youtube.com/watch?v=LRN_ewuN_k4 */
 static inline
 v3 get_camera_ray(struct camera cam, v2 view_pos, float aspect_ratio) {
 	/* TODO: Es innecesario calcular todo esto para cada rayo */
-	v3 up_guide = {0, 1, 0};
-	float half_fov = cam.fov / 2;
+	v3 up_guide = {0.f, 1.f, 0.f};
+	float half_fov = cam.fov / 2.f;
 	float height = atanf(half_fov);
 	float width = aspect_ratio * height;
 	v3 right_dir = v3normalize(v3cross(cam.direction, up_guide));
@@ -219,8 +219,8 @@ int render_thread(void* ptr) {
 		while ((y = SDL_AtomicAdd(&current_line, 1)) < height)
 		for (int x = 0; x < width; x++) {
 			v2 view_pos = (v2) {
-				(x + 0.5) / fwidth * 2 - 1,
-				1 - (y + 0.5) / fheight * 2,
+				(x + .5f) / fwidth * 2.f - 1.f,
+				1.f - (y + .5f) / fheight * 2.f,
 			};
 
 			v3 rd = get_camera_ray(scene->camera, view_pos,
@@ -231,7 +231,7 @@ int render_thread(void* ptr) {
 			v3 n = get_normal(scene, p, intersect.dist);
 			v3 colorf = get_light(scene, p, n, intersect.id);
 			/* gamma correction */
-			colorf = v3pow(colorf, 1.0/2.2);
+			colorf = v3pow(colorf, 1.f / 2.2f);
 			Uint32 colori = colorf_to_pixfmt(colorf, surf->format);
 			*((Uint32*)(surf->pixels
 			            + x * bytes_per_pixel

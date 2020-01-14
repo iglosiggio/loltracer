@@ -74,40 +74,40 @@ void update_camera(struct scene* scene) {
 	v3 up_dir = v3normalize(v3cross(right_dir, cam->direction));
 
 	if (key.W)
-		cam->point = v3add(cam->point, v3scale(cam->direction, 0.1));
+		cam->point = v3add(cam->point, v3scale(cam->direction, .1f));
 
 	if (key.A)
-		cam->point = v3add(cam->point, v3scale(right_dir, -0.1));
+		cam->point = v3add(cam->point, v3scale(right_dir, -.1f));
 
 	if (key.S)
-		cam->point = v3add(cam->point, v3scale(cam->direction, -0.1));
+		cam->point = v3add(cam->point, v3scale(cam->direction, -.1f));
 
 	if (key.D)
-		cam->point = v3add(cam->point, v3scale(right_dir, 0.1));
+		cam->point = v3add(cam->point, v3scale(right_dir, .1f));
 
 	if (key.Space)
-		cam->point.y += 0.1;
+		cam->point.y += .1f;
 
 	if (key.LCtrl)
-		cam->point.y -= 0.1;
+		cam->point.y -= .1f;
 
 	/* TODO: Rotation feels weird because the rotations are ultra hacky */
 
 	if (key.Up)
 		cam->direction = v3normalize(v3add(cam->direction,
-		                                   v3scale(up_dir, 0.1)));
+		                                   v3scale(up_dir, .1f)));
 
 	if (key.Down)
 		cam->direction = v3normalize(v3add(cam->direction,
-		                                   v3scale(up_dir, -0.1)));
+		                                   v3scale(up_dir, -.1f)));
 
 	if (key.Left)
 		cam->direction = v3normalize(v3add(cam->direction,
-		                                   v3scale(right_dir, -0.1)));
+		                                   v3scale(right_dir, -.1f)));
 
 	if (key.Right)
 		cam->direction = v3normalize(v3add(cam->direction,
-		                                    v3scale(right_dir, 0.1)));
+		                                    v3scale(right_dir, .1f)));
 }
 
 static
