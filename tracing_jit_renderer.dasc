@@ -81,6 +81,12 @@ struct jited_code generate_sdf(const struct scene* scene) {
 	|.align oword
 	|->v3_mask:
 	|.dword 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0x00000000
+	|->one_half:
+	|.dword 0x3F000000
+	|->one:
+	|.dword 0x3F800000
+	|->zero:
+	|.dword 0x00000000
 
 	/* INPUT:
 	 * xmm0: x pos, y pos
@@ -118,8 +124,9 @@ struct jited_code generate_sdf(const struct scene* scene) {
 	};
 }
 
-/* INPUT:  xmm2 point
- * OUTPUT: xmm8 distance */
+/* INPUT:    xmm2 point
+ * OUTPUT:   xmm8 distance
+ * CLOBBERS: xmm15, xmm14 */
 static inline
 void generate_obj_dist(Dst_DECL, const struct object* obj) {
 	|.data
@@ -152,15 +159,36 @@ void generate_obj_dist(Dst_DECL, const struct object* obj) {
 		| psrldq	xmm8,		4
 		break;
 	case OBJ_SMOOTH_UNION:
-		| mov		eax,		FLOAT_INF
-		| movd		xmm8,		eax
-		fprintf(stderr, "Unimplemented scene object\n");
-		/* do code generation recursively */
-		/* a_dist = get_obj_dist(obj->smooth_op.a, p);
-		   b_dist = get_obj_dist(obj->smooth_op.b, p); */
-
-		/* generate call to sminf */
-		/* sminf(a_dist, b_dist, obj->smooth_op.smoothness); */
+		generate_obj_dist(Dst, obj->smooth_op.a);
+		| lea		rsp,		[rsp - 4]
+		| movss		dword [rsp],	xmm8
+		generate_obj_dist(Dst, obj->smooth_op.b);
+		/* sminf */
+		|.data
+		|1:
+		|.dword F2U(obj->smooth_op.smoothness)
+		|.code
+		| movss		xmm15,		xmm8
+		| movss		xmm14,		dword [rsp]
+		/* h = .5 + .5 * (b - a) / k */
+		| subss		xmm15,		xmm14
+		| mulss		xmm15,		dword [->one_half]
+		| divss		xmm15,		dword [<1]
+		| addss		xmm15,		dword [->one_half]
+		/* h = clamp(h, 0, 1) */
+		| minss		xmm15,		dword [->one]
+		| maxss		xmm15,		dword [->zero]
+		/* rval = lerp(b, a, h) */
+		| subss		xmm14,		xmm8
+		| mulss		xmm14,		xmm15
+		| addss		xmm8,		xmm14
+		/* rval += k * h * (1 - h) */
+		| movss		xmm14,		dword [->one]
+		| subss		xmm14,		xmm15
+		| mulss		xmm15,		xmm14
+		| mulss		xmm15,		dword [<1]
+		| subss		xmm8,		xmm15
+		| lea		rsp,		[rsp + 4]
 		break;
 	default:
 		| mov		eax,		FLOAT_INF
