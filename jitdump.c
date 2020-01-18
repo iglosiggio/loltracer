@@ -107,7 +107,7 @@ size_t jitdump_emit_load(const char* name, void* addr, size_t size, size_t offse
 		.tid = gettid(),
 		.vma = (uint64_t) addr,
 		.code_addr = (uint64_t) addr + offset,
-		.code_size = size,
+		.code_size = size - offset,
 		.code_index = code_idx
 	};
 	fwrite(&load, sizeof(load), 1, fp);
