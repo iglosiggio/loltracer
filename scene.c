@@ -15,6 +15,19 @@ void object_free(void* obj_ptr) {
 	}
 }
 
+static
+struct object* object_dup(const struct object* obj) {
+	struct object* rval = malloc(sizeof(struct object));
+	*rval = *obj;
+
+	if (rval->type == OBJ_SMOOTH_UNION) {
+		rval->smooth_op.a = object_dup(obj->smooth_op.a);
+		rval->smooth_op.b = object_dup(obj->smooth_op.b);
+	}
+
+	return rval;
+}
+
 void definition_free(void* def_ptr) {
 	struct definition* def = def_ptr;
 
@@ -83,9 +96,8 @@ size_t prop_check_id(const struct definition* def) {
 
 struct object* prop_check_obj(const struct definition* def) {
 	struct object* rval;
-	assert("Is an object" && def->value.type == VAL_OBJ), \
-	rval = malloc(sizeof(struct object));
-	*rval = def->value.obj;
+	assert("Is an object" && def->value.type == VAL_OBJ);
+	rval = object_dup(&def->value.obj);
 	return rval;
 }
 
