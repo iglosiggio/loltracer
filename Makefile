@@ -26,6 +26,6 @@ scene-lexer.c: scene-lexer.l scene-parser.h
 clean:
 	rm -f main
 	rm -f scene-parser.c scene-parser.h scene-lexer.c scene-parser
-	rm -f tracing_jit_renderer.c
+	rm -f tracing tracing_jit_renderer.c
 
 .PHONY: run clean
