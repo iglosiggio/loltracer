@@ -1,3 +1,4 @@
+#include <stdbool.h>
 #include <sys/mman.h>
 
 #include "dynasm/dasm_proto.h"
@@ -33,6 +34,7 @@ static inline void generate_obj_dist(Dst_DECL, const struct object* obj);
 
 /* File-local JIT'ed code */
 static sdfFun sdf;
+static bool emit_jitdump;
 
 /* float-to-uint32
  * TODO: Is there a non-ub way of doing this? */
@@ -395,25 +397,29 @@ int render_thread(void* ptr) {
 }
 
 #include <unistd.h>
-void render_prepare(struct render_data* data) {
+void render_prepare(struct render_data* data, int argc,  const char* argv[]) {
 	/* TODO: Is a static variable a good idea? */
 	struct jited_code code = generate_sdf(data->scene);
 
 	data->private = sdf = code.f;
 
 	size_t sdf_offset = (void*)code.f - code.addr;
-	size_t sdf_size = code.size - sdf_offset;
 
-	//char filename[40];
-	//sprintf(filename, "/tmp/perf-%d.map", getpid());
-	//FILE* map = fopen(filename, "w");
-	//fprintf(map, "%lx %x sdf\n", sdf, sdf_size);
-	//fclose(map);
+	for (int i = 3; i < argc; i++)
+		if (strcmp("-j", argv[i]) == 0)
+			emit_jitdump = true;
+		else if (strcmp("--jitdump", argv[i]) == 0)
+			emit_jitdump = true;
 
-	jitdump_open();
-	jitdump_emit_load("sdf", code.addr, code.size, sdf_offset);
+	if (emit_jitdump) {
+		jitdump_open();
+		jitdump_emit_load("sdf", code.addr, code.size, sdf_offset);
+	}
 }
 
 void render_destroy(struct render_data* scene) {
-	jitdump_close();
+	if (emit_jitdump) {
+		jitdump_close();
+		emit_jitdump = false;
+	}
 }

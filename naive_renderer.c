@@ -239,7 +239,7 @@ int render_thread(void* ptr) {
 	}
 }
 
-void render_prepare(struct render_data* scene) {
+void render_prepare(struct render_data* scene, int argc, const char* argv[]) {
 	scene->private = NULL;
 }
 

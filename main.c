@@ -117,7 +117,9 @@ void die(const char* str) {
 	exit(-1);
 }
 
-int render_scene(struct scene* scene, size_t num_threads) {
+int render_scene(struct scene* scene, size_t num_threads, int argc,
+	const char* argv[]) {
+
 	SDL_Window*	win;
 	SDL_Event	event;
 	bool		paused = false;
@@ -156,7 +158,7 @@ int render_scene(struct scene* scene, size_t num_threads) {
 	if (win == NULL)
 		die(SDL_GetError());
 
-	render_prepare(&data);
+	render_prepare(&data, argc, argv);
 
 	while (1) {
 		while (SDL_PollEvent(&event)) {
@@ -218,7 +220,7 @@ exit:
 	return 0;
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, const char* argv[]) {
 	const char*	filename = NULL;
 	size_t		num_threads = 1;
 	struct scene*	scene = NULL;
@@ -232,7 +234,7 @@ int main(int argc, char* argv[]) {
 	scene = scene_parse(filename);
 	assert(scene && scene_validate_materials(scene));
 
-	render_scene(scene, num_threads);
+	render_scene(scene, num_threads, argc, argv);
 
 	scene_free(scene);
 
