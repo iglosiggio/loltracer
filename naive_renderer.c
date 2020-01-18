@@ -238,3 +238,10 @@ int render_thread(void* ptr) {
 		SDL_SemPost(frame_exit_barrier);
 	}
 }
+
+void render_prepare(struct render_data* scene) {
+	scene->private = NULL;
+}
+
+void render_destroy(struct render_data* scene) {
+}

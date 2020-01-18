@@ -11,6 +11,7 @@ extern SDL_sem*		frame_exit_barrier;
 struct render_data  {
 	SDL_Surface* surf;
 	const struct scene* scene;
+	void* private;
 };
 
 static inline Uint32 colorf_to_pixfmt(v3 colorf, const SDL_PixelFormat* fmt) {
@@ -21,5 +22,7 @@ static inline Uint32 colorf_to_pixfmt(v3 colorf, const SDL_PixelFormat* fmt) {
 }
 
 int render_thread(void* ptr);
+void render_prepare(struct render_data* scene);
+void render_destroy(struct render_data* scene);
 
 #endif /* __RENDERER_H__ */

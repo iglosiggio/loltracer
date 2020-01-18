@@ -156,6 +156,8 @@ int render_scene(struct scene* scene, size_t num_threads) {
 	if (win == NULL)
 		die(SDL_GetError());
 
+	render_prepare(&data);
+
 	while (1) {
 		while (SDL_PollEvent(&event)) {
 			if (event.type == SDL_QUIT) {
@@ -206,6 +208,7 @@ int render_scene(struct scene* scene, size_t num_threads) {
 		SDL_FreeSurface(data.surf);
 	}
 exit:
+	render_destroy(&data);
 	LOG("Cerrando");
 	free(threads);
 	SDL_DestroySemaphore(frame_entry_barrier);
