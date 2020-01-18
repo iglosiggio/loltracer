@@ -15,8 +15,9 @@
 #define TOSTR(text) #text
 #define LOG(format, ...) printf("[" __FILE__ ":%d] " format "\n", \
                                 __LINE__ __VA_OPT__(,) __VA_ARGS__)
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
 
-size_t frames;
 SDL_atomic_t exiting;
 SDL_atomic_t current_line;
 SDL_sem* frame_entry_barrier;
@@ -121,6 +122,15 @@ int render_scene(struct scene* scene, size_t num_threads) {
 	SDL_Event	event;
 	bool		paused = false;
 
+	/* Performance counters */
+	Uint32		frames = 0;
+	Uint32		frame_start;
+	Uint32		frame_end;
+	Uint32		frame_min = 0xFFFFFFFF;
+	Uint32		frame_max = 0x0;
+	Uint32		frame_total= 0;
+	
+
 	int width = 320;
 	int height = 240;
 
@@ -173,11 +183,21 @@ int render_scene(struct scene* scene, size_t num_threads) {
 			SDL_LockSurface(data.surf);
 
 		SDL_AtomicSet(&current_line, 0);
+		frame_start = SDL_GetTicks();
 		for (size_t i = 0; i < num_threads; i++)
 			SDL_SemPost(frame_entry_barrier);
 		for (size_t i = 0; i < num_threads; i++)
 			SDL_SemWait(frame_exit_barrier);
+
+		frame_end = SDL_GetTicks();
 		frames++;
+		frame_total += frame_end - frame_start;
+		frame_min = MIN(frame_min, frame_end - frame_start);
+		frame_max = MAX(frame_max, frame_end - frame_start);
+
+		LOG("Frame %d\ttime %d", frames, frame_end - frame_start);
+		LOG("min %d\tmax %d\tavg %f", frame_min, frame_max,
+		    frame_total / (float) frames);
 
 		if (SDL_MUSTLOCK(data.surf))
 			SDL_UnlockSurface(data.surf);
