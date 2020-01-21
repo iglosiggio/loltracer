@@ -80,12 +80,12 @@ float softshadow(const struct scene* scene, v3 ro, v3 rd, size_t max_steps,
 	for (size_t i = 0; i < max_steps; i++) {
 		v3 p = v3add(ro, v3scale(rd, dist));
 		float scene_dist = sdf(scene, p).dist;
-		res = fminf(res, w * scene_dist / dist);
+		res = minf(res, w * scene_dist / dist);
 		dist += scene_dist;
 		if (res < -1 || dist > max_dist)
 			break;
 	}
-	res = fmaxf(res, 0.f);
+	res = maxf(res, 0.f);
 	return res;
 }
 
