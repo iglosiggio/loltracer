@@ -1,6 +1,6 @@
 LUA ?= luajit
 
-CFLAGS += $$(sdl2-config --cflags)
+CFLAGS += $$(sdl2-config --cflags) -msse -msse2 -msse3 -msse4.1 -msse4.2 -mavx -mavx2
 LDFLAGS += $$(sdl2-config --libs) -lm
 
 SCENE ?= scene.lol
