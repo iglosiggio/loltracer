@@ -39,6 +39,11 @@ scene {
 		specular_intensity	= (4, 4, 4)
 	},
 
+	point_light {
+		point			= (-7, 2, -5),
+		diffuse_intensity	= (1, 1.5, 2),
+		specular_intensity	= (1, 1.5, 2)
+	},
 
 	smooth-union {
 		smoothness	= 3,
