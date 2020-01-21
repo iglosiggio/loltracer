@@ -92,7 +92,9 @@ struct jited_code generate_sdf(const struct scene* scene) {
 
 	/* INPUT:
 	 * xmm0: x pos, y pos
-	 * xmm1: z pos */
+	 * xmm1: z pos
+	 * OUTPUT: rax (dist, id)
+	 * CLOBBERS: xmm0, xmm1, xmm2, xmm8, xmm14, xmm15, r8 */
 	|.code
 	|->sdf_main:
 	| movlhps	xmm0,		xmm1
@@ -128,7 +130,7 @@ struct jited_code generate_sdf(const struct scene* scene) {
 
 /* INPUT:    xmm2 point
  * OUTPUT:   xmm8 distance
- * CLOBBERS: xmm15, xmm14 */
+ * CLOBBERS: xmm14, xmm15 */
 static inline
 void generate_obj_dist(Dst_DECL, const struct object* obj) {
 	|.data
