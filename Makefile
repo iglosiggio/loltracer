@@ -3,6 +3,7 @@ LUA ?= luajit
 CFLAGS += $$(sdl2-config --cflags) -msse -msse2 -msse3 -msse4.1 -msse4.2 -mavx -mavx2
 LDFLAGS += $$(sdl2-config --libs) -lm
 
+BIN ?= main
 SCENE ?= scene.lol
 THREADS ?= 8
 
@@ -11,8 +12,8 @@ main: main.c vec.h sdf.h float.h scene-parser.c scene-lexer.c scene.c naive_rend
 tracing: main.c vec.h sdf.h float.h scene-parser.c scene-lexer.c scene.c tracing_jit_renderer.c jitdump.c
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
 
-run: main
-	env SDL_VIDEO_X11_WMCLASS=raytracer ./main $(THREADS) $(SCENE)
+run: $(BIN)
+	env SDL_VIDEO_X11_WMCLASS=raytracer ./$(BIN) $(THREADS) examples/$(SCENE)
 
 %.c: %.dasc
 	$(LUA) dynasm/dynasm.lua -o $@ $<
