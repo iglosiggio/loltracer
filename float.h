@@ -32,5 +32,24 @@ float sminf(float a, float b, float k) {
 	return lerp(b, a, h) - k * h * (1.f - h);
 }
 
+/* Code from the LLVM source tree:
+ * https://github.com/llvm-mirror/clang/commit/4cab28e73ee08b69fb97f11ccbd887d8ee3d524e */
+/** Cast a 32-bit float value to a 32-bit unsigned integer value
+ *
+ *  \headerfile <x86intrin.h>
+ *  This intrinsic corresponds to the <c> VMOVD / MOVD </c> instruction in x86_64,
+ *  and corresponds to the <c> VMOVL / MOVL </c> instruction in ia32.
+ *
+ *  \param __A
+ *     A 32-bit float value.
+ *  \returns a 32-bit unsigned integer containing the converted value.
+ */
+static inline
+unsigned int _castf32_u32(float __A) {
+	unsigned int D;
+	__builtin_memcpy(&D, &__A, sizeof(__A));
+	return D;
+}
+
 #endif /* __FLOAT_H__ */
 

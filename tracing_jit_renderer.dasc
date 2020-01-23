@@ -53,9 +53,8 @@ struct world_dist sdfcall(v3 p) {
 	return rval;
 }
 
-/* float-to-uint32
- * TODO: Is there a non-ub way of doing this? */
-#define F2U(f) (*(unsigned*)(&(f)))
+/* float-to-uint32 w/o conversion */
+#define F2U _castf32_u32
 #define FLOAT_INF 0x7F800000
 
 static
@@ -101,11 +100,11 @@ struct jited_code generate_sdf(const struct scene* scene) {
 	|->v3_mask:
 	|.dword 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0x00000000
 	|->one_half:
-	|.dword 0x3F000000
+	|.dword F2U(0.5f)
 	|->one:
-	|.dword 0x3F800000
+	|.dword F2U(1.f)
 	|->zero:
-	|.dword 0x00000000
+	|.dword F2U(0.f)
 
 	/* INPUT:
 	 * xmm0: x pos, y pos, z pos
