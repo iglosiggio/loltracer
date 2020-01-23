@@ -33,8 +33,22 @@ struct jited_code {
 static inline void generate_obj_dist(Dst_DECL, const struct object* obj);
 
 /* File-local JIT'ed code */
+__attribute__((used))
 static sdfFun sdf;
 static bool emit_jitdump;
+
+static inline
+struct world_dist sdfcall(v3 p) {
+	struct world_dist rval;
+
+	asm("movdqu %1, %%xmm0\n"
+	    "callq *sdf(%%rip)\n"
+	   : "=a" (rval)
+	   : "x" (p.vec)
+	   : "xmm0", "xmm1", "xmm2", "xmm8", "xmm14", "xmm15", "r8");
+
+	return rval;
+}
 
 /* float-to-uint32
  * TODO: Is there a non-ub way of doing this? */
@@ -91,13 +105,11 @@ struct jited_code generate_sdf(const struct scene* scene) {
 	|.dword 0x00000000
 
 	/* INPUT:
-	 * xmm0: x pos, y pos
-	 * xmm1: z pos
+	 * xmm0: x pos, y pos, z pos
 	 * OUTPUT: rax (dist, id)
 	 * CLOBBERS: xmm0, xmm1, xmm2, xmm8, xmm14, xmm15, r8 */
 	|.code
 	|->sdf_main:
-	| movlhps	xmm0,		xmm1
 	| andps		xmm0,		[->v3_mask]
 	| movdqa	xmm2,		xmm0
 	/* xmm2: x pos, y pos, z pos */
@@ -214,7 +226,7 @@ struct world_dist get_intersection(const struct scene* scene, v3 ro, v3 rd) {
 	
 	for (size_t i = 0; i < MAX_STEPS; i++) {
 		v3 p = v3add(ro, v3scale(rd, dist));
-		struct world_dist scene_dist = sdf(p);
+		struct world_dist scene_dist = sdfcall(p);
 		dist += scene_dist.dist;
 		id = scene_dist.id;
 		if (scene_dist.dist < EPSILON || dist > MAX_DIST)
@@ -238,7 +250,7 @@ float softshadow(const struct scene* scene, v3 ro, v3 rd, size_t max_steps,
 
 	for (size_t i = 0; i < max_steps; i++) {
 		v3 p = v3add(ro, v3scale(rd, dist));
-		float scene_dist = sdf(p).dist;
+		float scene_dist = sdfcall(p).dist;
 		res = fminf(res, w * scene_dist / dist);
 		dist += scene_dist;
 		if (res < -1 || dist > max_dist)
@@ -276,10 +288,10 @@ static v3 get_normal(const struct scene* scene, v3 p, float dist) {
 	static const v3 k2 = {-1.f,  1.f, -1.f};
 	static const v3 k3 = { 1.f,  1.f,  1.f};
 	const float h = dist / 100.f;
-	const v3 p0 = v3scale(k0, sdf(v3add(p, v3scale(k0, h))).dist);
-	const v3 p1 = v3scale(k1, sdf(v3add(p, v3scale(k1, h))).dist);
-	const v3 p2 = v3scale(k2, sdf(v3add(p, v3scale(k2, h))).dist);
-	const v3 p3 = v3scale(k3, sdf(v3add(p, v3scale(k3, h))).dist);
+	const v3 p0 = v3scale(k0, sdfcall(v3add(p, v3scale(k0, h))).dist);
+	const v3 p1 = v3scale(k1, sdfcall(v3add(p, v3scale(k1, h))).dist);
+	const v3 p2 = v3scale(k2, sdfcall(v3add(p, v3scale(k2, h))).dist);
+	const v3 p3 = v3scale(k3, sdfcall(v3add(p, v3scale(k3, h))).dist);
 	return v3normalize(v3add(p0, v3add(p1, v3add(p2, p3))));
 }
 
