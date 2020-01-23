@@ -32,11 +32,14 @@ struct jited_code {
 
 static inline void generate_obj_dist(Dst_DECL, const struct object* obj);
 
-/* File-local JIT'ed code */
+/* File-local JIT'ed code.
+ * __attribute__((used)) is necesary because the variable is only read from the
+ * inline assembly. */
 __attribute__((used))
 static sdfFun sdf;
 static bool emit_jitdump;
 
+/* Call sdf(p) signaling the compiler on the clobbered registers. */
 static inline
 struct world_dist sdfcall(v3 p) {
 	struct world_dist rval;
