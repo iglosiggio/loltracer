@@ -23,6 +23,10 @@ struct vector {
 static inline
 struct vector* _vector_new(size_t elem_size, size_t initial_capacity) {
 	struct vector* rval = malloc(sizeof(struct vector));
+
+	if (initial_capacity == 0)
+		initial_capacity = 8;
+
 	rval->size = 0;
 	rval->capacity = initial_capacity;
 	rval->elem_size = elem_size;
@@ -46,7 +50,7 @@ void vector_free(struct vector* vec, free_func f) {
 static inline
 void* _vector_add(struct vector* vec) {
 	if (vec->size >= vec->capacity) {
-		vec->capacity = vec->capacity * vec->elem_size * 2 + vec->elem_size;
+		vec->capacity *= 2;
 		vec->data = realloc(vec->data, vec->capacity * vec->elem_size);
 		assert(vec->data != NULL);
 	}
