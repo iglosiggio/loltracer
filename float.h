@@ -1,24 +1,21 @@
 #ifndef __FLOAT_H__
 #define __FLOAT_H__
 
-#include <xmmintrin.h>
+#include <math.h>
 
 static inline
 float maxf(float a, float b) {
-	return _mm_cvtss_f32(_mm_max_ss(_mm_set1_ps(a), _mm_set1_ps(b)));
+	return fmax(a, b);
 }
 
 static inline
 float minf(float a, float b) {
-	return _mm_cvtss_f32(_mm_min_ss(_mm_set1_ps(a), _mm_set1_ps(b)));
+	return fmin(a, b);
 }
 
 static inline
 float clamp(float v, float min, float max) {
-	return _mm_cvtss_f32(
-		_mm_min_ss(_mm_max_ss(_mm_set1_ps(v), _mm_set1_ps(min)),
-		           _mm_set1_ps(max))
-	);
+	return fmin(fmax(v, min), max);
 }
 
 static inline
